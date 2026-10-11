@@ -11,11 +11,12 @@ import { ArrowRight, ChevronDown, MapPin } from "lucide-react"
 // King Ice Cream storefront artwork:
 //
 //   0.00 – 0.45  camera eases toward the store, the glass doors swing in
-//                and the King logo lights up on the arch inside
-//   0.30 – 0.92  camera glides through the doorway at an even pace
-//   0.55 – 1.00  the parlour dissolves in around you, its centre arch
-//                lined up with the arch seen through the door, then
-//                settles; headline + CTAs fade in
+//                and the King logo lights up on the wall inside
+//   0.28 – 0.90  camera glides through the doorway at an even pace and
+//                settles on the store's own back wall: real King products
+//                on its shelves and counter, logo centred on the teal arch
+//   0.72 – 1.00  the room softly drops out of focus behind the products;
+//                headline + CTAs fade in
 //
 // The storefront is alive before anyone scrolls: a small WebGL shader
 // sways the flowers and trees and ripples the sea (driven by a wind
@@ -30,12 +31,12 @@ import { ArrowRight, ChevronDown, MapPin } from "lucide-react"
 // ─────────────────────────────────────────────────────────────
 
 export interface KingHeroProducts {
-  /** Front and centre inside the parlour (a tub works best). */
+  /** Front and centre on the counter inside the store (a tub works best). */
   hero: string
-  /** Bars standing either side of the hero. */
+  /** Bars standing either side of it. */
   heroLeft: string
   heroRight: string
-  /** Tubs and bars for the parlour shelves. */
+  /** Tubs (left arch shelves) and bars (right arch shelves). */
   tubs: string[]
   bars: string[]
 }
@@ -48,7 +49,7 @@ export interface KingStoreAssets {
   doorRight: string
   /** Wind mask (half size): red = foliage that sways, green = sea that ripples. */
   windMask: string
-  /** King logo, shown on the arch inside the store and in the parlour. */
+  /** King logo, centred on the teal arch on the back wall inside the store. */
   logo: string
 }
 
@@ -59,13 +60,13 @@ export interface KingStoreHeroProps {
   scrollHint?: string
   /** Gold lettering on the teal fascia, left and right of the sign. `false` hides it. */
   tagline?: [string, string] | false
-  /** Final reveal copy, shown once you are inside the parlour. */
+  /** Final reveal copy, shown once you are inside the store. */
   eyebrow?: string
   headline?: string
   subheadline?: string
   primaryCta?: { label: string; href: string } | false
   secondaryCta?: { label: string; href: string } | false
-  /** Product photos (transparent PNG/WebP) used inside the parlour. */
+  /** Product photos (transparent PNG/WebP) placed on the shelves inside the store. */
   products?: Partial<KingHeroProducts>
   /** Storefront artwork layers. */
   assets?: Partial<KingStoreAssets>
@@ -107,7 +108,6 @@ const TUB_RATIO = 0.87
 const BAR_RATIO = 0.42
 
 // Brand palette
-const TEAL = "#0b6a7c"
 const TEAL_DEEP = "#00465e"
 const YELLOW = "#fab001"
 const CREAM = "#fff6e3"
@@ -125,21 +125,20 @@ const STAGE_H = 1116
 const DOOR = { x: 803, y: 345, w: 394, h: 608 } // the doorway the camera flies through
 const LEAVES = { x: 800, y: 342, w: 400, h: 614 } // bounding box of both door leaves
 const LEAF = { w: 204, leftHinge: 3.5, rightHinge: 201, glass: { x: 18, y: 17, w: 166, h: 573 } }
-// The teal arch seen through the doors (artwork units, top-centre point) and
-// its twin in the parlour. The camera glides toward the first and comes to
-// rest exactly where the second rests, so the rooms dissolve into each other
-// with the arches, logos and side shelves lined up.
-const INNER_ARCH = { x: 1000, top: 450, w: 162 }
-const PARLOUR_ARCH = { x: 800, top: 380, w: 420 }
+// Inside the store (artwork units). The camera comes to rest centred on VIEW.
+const VIEW = { x: 1000, y: 560 }
+const VIEW_W = 620 // artwork width visible at rest on wide screens
+const VIEW_H = 560 // artwork height visible at rest on tall screens
+const SHELF_ROWS = [535, 583, 631] // tops of the three gold shelves in each side arch
+const LEFT_SHELF_X = [826, 866] // tub positions (left arch, right of the door post)
+const RIGHT_SHELF_X = [1122, 1143, 1164, 1185] // bar positions (right arch, left of the door post)
+const COUNTER_Y = 689 // marble counter top under the teal arch
+const WALL_LOGO = { x: 1001, y: 492, w: 100 } // centred on the teal arch
 const LOGO_RATIO = 375 / 578
 const LANTERNS = [
   { x: 408, y: 498, r: 90 },
   { x: 1590, y: 505, r: 90 },
 ]
-// Interior (parlour) stage, scaled to cover the viewport
-const INT_W = 1600
-const INT_H = 1000
-
 function clamp(v: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, v))
 }
@@ -160,7 +159,7 @@ export default function KingStoreHero({
   secondaryCta = { label: "Find a Store", href: "#stores" },
   products,
   assets,
-  scrubDistance = 3400,
+  scrubDistance = 3000,
   showSkip = true,
   className,
   style,
@@ -169,13 +168,13 @@ export default function KingStoreHero({
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stillRef = useRef<HTMLImageElement>(null)
-  const interiorRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const focusRef = useRef<HTMLDivElement>(null)
   const leftDoorRef = useRef<HTMLDivElement>(null)
   const rightDoorRef = useRef<HTMLDivElement>(null)
   const doorGlowRef = useRef<HTMLDivElement>(null)
   const petalsRef = useRef<HTMLDivElement>(null)
-  const flashRef = useRef<HTMLDivElement>(null)
-  const innerLogoRef = useRef<HTMLDivElement>(null)
+  const wallLogoRef = useRef<SVGGElement>(null)
   const introRef = useRef<HTMLDivElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
   const finaleRef = useRef<HTMLDivElement>(null)
@@ -222,11 +221,10 @@ export default function KingStoreHero({
     let s = 1 // stage scale
     let tx = 0
     let ty = 0
-    let si = 1 // interior scale
-    let zoomEnd = 3 // artwork zoom at which its arch matches the resting parlour arch
-    let startX = 0 // inner arch on screen before any scrolling…
+    let zoomEnd = 3 // artwork zoom when the camera comes to rest inside
+    let startX = 0 // VIEW point on screen before any scrolling…
     let startY = 0
-    let restX = 0 // …and where the parlour arch rests at the end
+    let restX = 0 // …and where it rests at the end
     let restY = 0
 
     function measure() {
@@ -238,12 +236,11 @@ export default function KingStoreHero({
       s = Math.max(vw / STAGE_W, Math.min(vh / STAGE_H, vw / 1030))
       tx = (vw - STAGE_W * s) / 2
       ty = (vh - STAGE_H * s) * (STAGE_H * s < vh ? 0.3 : 0.35)
-      si = Math.max(vw / INT_W, vh / INT_H)
-      zoomEnd = Math.max(1.05, (PARLOUR_ARCH.w * si) / (INNER_ARCH.w * s))
-      startX = tx + INNER_ARCH.x * s
-      startY = ty + INNER_ARCH.top * s
-      restX = vw / 2 + (PARLOUR_ARCH.x - INT_W / 2) * si
-      restY = vh / 2 + (PARLOUR_ARCH.top - INT_H / 2) * si
+      zoomEnd = Math.max(1.05, Math.max(vw / VIEW_W, vh / VIEW_H) / s)
+      startX = tx + VIEW.x * s
+      startY = ty + VIEW.y * s
+      restX = vw / 2
+      restY = vh * 0.53
       // Feather the artwork's top and bottom edge into sky / paving when they show.
       const feather =
         STAGE_H * s < vh - 1 ? "linear-gradient(180deg, transparent 0, #000 5%, #000 90%, transparent 100%)" : "none"
@@ -258,11 +255,11 @@ export default function KingStoreHero({
     // ── scene ─────────────────────────────────────────────────
     // One continuous camera move: a gentle approach while the doors open,
     // then an even-paced glide (log-space, so the speed feels constant)
-    // that comes to rest on the inner arch.
+    // that settles inside, in front of the shelves.
     function zoomAt(p: number) {
       const approach = Math.min(1.3, Math.sqrt(zoomEnd))
       return Math.exp(
-        Math.log(approach) * smooth(range(p, 0, 0.42)) + Math.log(zoomEnd / approach) * easeInOutSine(range(p, 0.28, 0.86)),
+        Math.log(approach) * smooth(range(p, 0, 0.42)) + Math.log(zoomEnd / approach) * easeInOutSine(range(p, 0.28, 0.9)),
       )
     }
 
@@ -270,19 +267,18 @@ export default function KingStoreHero({
       const door = easeInOutCubic(range(p, 0.06, 0.42))
       const zoom = zoomAt(p)
       const S = s * zoom
-      // The inner arch drifts from where it starts to where the parlour arch
-      // rests, in step with the zoom.
+      // The VIEW point drifts from where it starts to where it rests, in step with the zoom.
       const u = clamp((zoom - 1) / (zoomEnd - 1))
-      const archX = startX + (restX - startX) * u
-      const archY = startY + (restY - startY) * u
+      const vx = startX + (restX - startX) * u
+      const vy = startY + (restY - startY) * u
 
       const stage = stageRef.current
-      if (stage) {
-        stage.style.transform = `translate3d(${archX - INNER_ARCH.x * S}px, ${archY - INNER_ARCH.top * S}px, 0) scale(${S})`
-        const fade = 1 - smooth(range(p, 0.6, 0.84))
-        stage.style.opacity = String(fade)
-        stage.style.visibility = fade <= 0.001 ? "hidden" : "visible"
-      }
+      if (stage) stage.style.transform = `translate3d(${vx - VIEW.x * S}px, ${vy - VIEW.y * S}px, 0) scale(${S})`
+
+      // Arriving: the room drops slightly out of focus behind the sharp products.
+      const focus = smooth(range(p, 0.72, 1))
+      if (backdropRef.current) backdropRef.current.style.filter = focus > 0.01 ? `blur(${(focus * 0.8).toFixed(2)}px)` : "none"
+      if (focusRef.current) focusRef.current.style.opacity = String(focus)
 
       const angle = door * 96
       if (leftDoorRef.current) leftDoorRef.current.style.transform = `rotateY(${angle}deg)`
@@ -292,22 +288,8 @@ export default function KingStoreHero({
         if (glass) glass.style.opacity = String(Math.sin(door * Math.PI) * 0.9)
       }
       if (doorGlowRef.current) doorGlowRef.current.style.opacity = String(door)
-      if (innerLogoRef.current) innerLogoRef.current.style.opacity = String(smooth(range(p, 0.1, 0.4)))
+      if (wallLogoRef.current) wallLogoRef.current.style.opacity = String(smooth(range(p, 0.1, 0.4)))
       if (petalsRef.current) petalsRef.current.style.opacity = String(1 - range(p, 0.25, 0.5))
-
-      const interior = interiorRef.current
-      if (interior) {
-        // Locked to the inner arch: same place, same size, so the dissolve is seamless.
-        const k = (S * INNER_ARCH.w) / PARLOUR_ARCH.w
-        interior.style.transform = `translate3d(${archX}px, ${archY}px, 0) scale(${k}) translate(${-PARLOUR_ARCH.x}px, ${-PARLOUR_ARCH.top}px)`
-        interior.style.visibility = p > 0.58 ? "visible" : "hidden"
-      }
-
-      if (flashRef.current) {
-        // a soft warm bloom while the rooms cross over, never a white-out
-        const f = clamp(1 - Math.abs(p - 0.72) / 0.12)
-        flashRef.current.style.opacity = String(smooth(f) * 0.3)
-      }
 
       if (introRef.current) {
         const t = 1 - clamp(p / 0.22)
@@ -456,7 +438,7 @@ export default function KingStoreHero({
         rendered = current
       }
       // The wind only needs drawing while the storefront is on screen.
-      if (wind && inView && current < 0.88 && !document.hidden) wind.draw(now / 1000)
+      if (wind && inView && current < 0.9 && !document.hidden) wind.draw(now / 1000)
       rafId = requestAnimationFrame(frame)
     }
 
@@ -473,7 +455,7 @@ export default function KingStoreHero({
     io.observe(section)
 
     if (reduceMotion) {
-      // Skip the choreography: show the finished parlour, never lock.
+      // Skip the choreography: show the finished view inside the store, never lock.
       target = current = 1
       started = true
       render(1)
@@ -540,24 +522,6 @@ export default function KingStoreHero({
     >
       <style>{KEYFRAMES}</style>
 
-      {/* ── Interior: the parlour behind the doors ── */}
-      <div
-        ref={interiorRef}
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: INT_W,
-          height: INT_H,
-          transformOrigin: "0 0",
-          pointerEvents: "none",
-          visibility: "hidden",
-        }}
-      >
-        <Parlour products={items} logo={art.logo} />
-      </div>
-
       {/* ── Storefront ── */}
       <div
         ref={stageRef}
@@ -576,6 +540,7 @@ export default function KingStoreHero({
         <div style={{ position: "absolute", left: -2000, right: -2000, top: -2400, height: 2500, background: `linear-gradient(180deg, #2f8fe0 0%, ${SKY} 100%)` }} />
         <div style={{ position: "absolute", left: -2000, right: -2000, top: STAGE_H - 100, height: 2500, background: `linear-gradient(180deg, ${STONE} 0%, #ddd0be 60%)` }} />
 
+        <div ref={backdropRef} style={{ position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H }}>
         {/* still artwork (also the fallback when WebGL is unavailable) */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -592,30 +557,10 @@ export default function KingStoreHero({
           height={STAGE_H}
           style={{ position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H, opacity: 0, transition: "opacity .6s ease" }}
         />
-
-        {/* King logo lit up on the teal arch inside the store */}
-        <div
-          ref={innerLogoRef}
-          style={{ position: "absolute", left: INNER_ARCH.x - 32.5, top: 459, width: 65, height: 65 * LOGO_RATIO, opacity: 0 }}
-        >
-          <div
-            className="king-hero-flicker"
-            style={{
-              position: "absolute",
-              inset: -26,
-              borderRadius: "50%",
-              background: "radial-gradient(circle, rgba(255,236,180,0.55) 0%, rgba(255,214,120,0.18) 40%, rgba(255,214,120,0) 70%)",
-              mixBlendMode: "screen",
-            }}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={art.logo}
-            alt=""
-            draggable={false}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", filter: "drop-shadow(0 2px 4px rgba(0,20,28,0.45))" }}
-          />
         </div>
+
+        {/* Inside the store: King products on its own shelves and counter, logo on the wall */}
+        <StoreDisplay products={items} logo={art.logo} logoRef={wallLogoRef} />
 
         {/* lantern glow */}
         {LANTERNS.map((l) => (
@@ -727,14 +672,14 @@ export default function KingStoreHero({
         ))}
       </div>
 
-      {/* Light flash as we cross the threshold */}
+      {/* Soft vignette as the camera settles inside */}
       <div
-        ref={flashRef}
+        ref={focusRef}
         aria-hidden
         style={{
           position: "absolute",
           inset: 0,
-          background: "radial-gradient(ellipse at 50% 55%, #fff6e2 0%, #ffe6b5 55%, rgba(246,214,160,0.6) 100%)",
+          background: "radial-gradient(ellipse 75% 70% at 50% 55%, rgba(0,0,0,0) 55%, rgba(30,18,4,0.35) 100%)",
           opacity: 0,
           pointerEvents: "none",
         }}
@@ -811,7 +756,7 @@ export default function KingStoreHero({
         </span>
       </div>
 
-      {/* ── Finale copy (inside the parlour) ── */}
+      {/* ── Finale copy (inside the store) ── */}
       <div
         ref={finaleRef}
         aria-hidden
@@ -822,13 +767,28 @@ export default function KingStoreHero({
           flexDirection: "column",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "clamp(64px, 11vh, 120px) 6% clamp(36px, 7vh, 72px)",
+          padding: "clamp(16px, 4vh, 44px) 16px clamp(28px, 6vh, 64px)",
           textAlign: "center",
           opacity: 0,
           pointerEvents: "none",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(8px, 1.4vh, 14px)", maxWidth: 820 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "clamp(6px, 1vh, 10px)",
+            maxWidth: 760,
+            padding: "clamp(14px, 2.2vh, 22px) clamp(18px, 3vw, 40px)",
+            borderRadius: 22,
+            background: "rgba(255,249,238,0.84)",
+            border: "1px solid rgba(214,170,74,0.55)",
+            boxShadow: "0 18px 50px -18px rgba(40,24,4,0.45)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+          }}
+        >
           <span
             style={{
               fontFamily: SANS,
@@ -846,8 +806,8 @@ export default function KingStoreHero({
               margin: 0,
               fontFamily: SERIF,
               fontWeight: 800,
-              fontSize: "clamp(32px, 5.4vw, 76px)",
-              lineHeight: 1.02,
+              fontSize: "clamp(26px, 3.6vw, 52px)",
+              lineHeight: 1.05,
               letterSpacing: "-0.015em",
               color: TEAL_DEEP,
               textShadow: "0 2px 0 rgba(255,255,255,0.6)",
@@ -860,7 +820,7 @@ export default function KingStoreHero({
               style={{
                 margin: 0,
                 fontFamily: SANS,
-                fontSize: "clamp(14px, 1.5vw, 18px)",
+                fontSize: "clamp(13px, 1.3vw, 16px)",
                 fontWeight: 500,
                 lineHeight: 1.45,
                 color: "rgba(0,70,94,0.85)",
@@ -1076,8 +1036,9 @@ function createWindScene(canvas: HTMLCanvasElement, imgSrc: string, maskSrc: str
 }
 
 // ─────────────────────────────────────────────────────────────
-// Parlour interior (1600 × 1000 units): cream marble, teal arches
-// and gold, matching the store seen through the windows.
+// Inside the store: the real King products on the artwork's own
+// shelves and counter, and the logo centred on the teal arch.
+// Drawn in artwork units, so it moves with the camera.
 // ─────────────────────────────────────────────────────────────
 function rotate<T>(list: T[], by: number): T[] {
   if (list.length === 0) return list
@@ -1106,156 +1067,82 @@ function Product({
   const w = height * ratio
   return (
     <g transform={deg ? `rotate(${deg} ${cx} ${bottom})` : undefined}>
-      {shadow && <ellipse cx={cx} cy={bottom - 2} rx={w * 0.46} ry={Math.max(3, w * 0.07)} fill="#3b2a10" opacity={0.25} />}
+      {shadow && <ellipse cx={cx} cy={bottom - 0.5} rx={w * 0.46} ry={w * 0.06} fill="#2a1a06" opacity={0.35} />}
       <image href={src} x={cx - w / 2} y={bottom - height} width={w} height={height} preserveAspectRatio="xMidYMax meet" />
     </g>
   )
 }
 
-function arch(x0: number, x1: number, top: number, bottom: number) {
-  const r = (x1 - x0) / 2
-  return `M${x0} ${bottom} V${top + r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${bottom} Z`
-}
-
-function Parlour({ products, logo }: { products: KingHeroProducts; logo: string }) {
+function StoreDisplay({
+  products,
+  logo,
+  logoRef,
+}: {
+  products: KingHeroProducts
+  logo: string
+  logoRef: React.RefObject<SVGGElement | null>
+}) {
   const { tubs, bars } = products
-  const center = arch(590, 1010, 380, 790)
-  const left = arch(170, 470, 400, 790)
-  const right = arch(1130, 1430, 400, 790)
+  const logoH = WALL_LOGO.w * LOGO_RATIO
   return (
-    <svg viewBox={`0 0 ${INT_W} ${INT_H}`} width={INT_W} height={INT_H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+    <svg
+      viewBox={`0 0 ${STAGE_W} ${STAGE_H}`}
+      width={STAGE_W}
+      height={STAGE_H}
+      // warm-graded to sit in the store's lighting
+      style={{ position: "absolute", inset: 0, overflow: "visible", filter: "sepia(0.14) saturate(0.95) brightness(0.97) contrast(0.96)" }}
+    >
       <defs>
-        <radialGradient id="ki-wall" cx="800" cy="420" r="1100" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#fffaf1" />
-          <stop offset="0.5" stopColor="#f3eadb" />
-          <stop offset="1" stopColor="#ddcdb3" />
-        </radialGradient>
-        <linearGradient id="ki-teal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#127c8f" />
-          <stop offset="1" stopColor="#06495a" />
-        </linearGradient>
-        <linearGradient id="ki-niche" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#efe4d1" />
-          <stop offset="1" stopColor="#e2d3ba" />
-        </linearGradient>
-        <linearGradient id="ki-marble" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#ddd5c8" />
-        </linearGradient>
-        <radialGradient id="ki-glow">
-          <stop offset="0" stopColor="#fff6dc" stopOpacity="0.95" />
-          <stop offset="0.5" stopColor="#ffe3a6" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#ffe3a6" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="ki-gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff1b8" />
-          <stop offset="0.35" stopColor="#e9bd55" />
-          <stop offset="0.7" stopColor="#b98314" />
-          <stop offset="1" stopColor="#f0cd73" />
-        </linearGradient>
-        <linearGradient id="ki-cove" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffd98f" stopOpacity="0.7" />
-          <stop offset="1" stopColor="#ffd98f" stopOpacity="0" />
-        </linearGradient>
-        <filter id="ki-shadow" x="-30%" y="-20%" width="160%" height="150%">
-          <feDropShadow dx="0" dy="14" stdDeviation="12" floodColor="#00242f" floodOpacity="0.45" />
+        <filter id="ks-shadow" x="-30%" y="-20%" width="160%" height="150%">
+          <feDropShadow dx="0" dy="2" stdDeviation="1.6" floodColor="#2a1a06" floodOpacity="0.45" />
         </filter>
+        <radialGradient id="ks-logo-glow">
+          <stop offset="0" stopColor="#fff1c4" stopOpacity="0.75" />
+          <stop offset="0.5" stopColor="#ffd98a" stopOpacity="0.22" />
+          <stop offset="1" stopColor="#ffd98a" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
-      {/* back wall with soft marble veining */}
-      <rect x={-1200} y={-1200} width={INT_W + 2400} height={INT_H + 2400} fill="url(#ki-wall)" />
-      {MARBLE_VEINS.map((d, i) => (
-        <path key={i} d={d} fill="none" stroke="#cbb994" strokeWidth={i % 2 ? 1.2 : 2.2} opacity={0.35} />
-      ))}
+      {/* left arch shelves: tubs */}
+      {SHELF_ROWS.map((y, row) =>
+        rotate(tubs, row * 2)
+          .slice(0, LEFT_SHELF_X.length)
+          .map((src, i) => <Product key={`t${row}-${i}`} src={src} cx={LEFT_SHELF_X[i]} bottom={y} height={42} ratio={TUB_RATIO} />),
+      )}
 
-      {/* ceiling cove with warm light */}
-      <rect x={-1200} y={-1200} width={INT_W + 2400} height={1270} fill="#efe5d4" />
-      <rect x={-1200} y={66} width={INT_W + 2400} height={6} fill="url(#ki-gold)" />
-      <rect x={-1200} y={72} width={INT_W + 2400} height={60} fill="url(#ki-cove)" />
+      {/* right arch shelves: bars (the top shelf is narrower under the arch) */}
+      {bars.length > 0 &&
+        SHELF_ROWS.map((y, row) =>
+          RIGHT_SHELF_X.map((x, i) =>
+            row === 0 && i === 0 ? null : (
+              <Product key={`b${row}-${i}`} src={bars[(i + row) % bars.length]} cx={x} bottom={y} height={44} ratio={BAR_RATIO} />
+            ),
+          ),
+        )}
 
-      {/* side arches with shelves: tubs left, bars right */}
-      {[left, right].map((d, side) => (
-        <g key={side}>
-          <path d={d} fill="url(#ki-niche)" />
-          <path d={d} fill="none" stroke="#c7b28c" strokeWidth={14} opacity={0.35} transform="translate(0 4)" />
-          {[615, 772].map((y, row) => {
-            const x0 = side === 0 ? 170 : 1130
-            return (
-              <g key={y}>
-                {side === 0
-                  ? rotate(tubs, row * 2)
-                      .slice(0, 2)
-                      .map((src, i) => <Product key={i} src={src} cx={x0 + 88 + i * 124} bottom={y} height={122} ratio={TUB_RATIO} />)
-                  : rotate(bars, row)
-                      .slice(0, 3)
-                      .map((src, i) => <Product key={i} src={src} cx={x0 + 70 + i * 80} bottom={y} height={142} ratio={BAR_RATIO} />)}
-                <rect x={x0 + 8} y={y - 1} width={284} height={7} rx={2} fill="url(#ki-gold)" />
-              </g>
-            )
-          })}
-          <path d={d} fill="none" stroke="url(#ki-gold)" strokeWidth={7} />
-        </g>
-      ))}
-
-      {/* wall sconces between the arches */}
-      {[530, 1070].map((x) => (
-        <g key={x}>
-          <ellipse cx={x} cy={470} rx={110} ry={120} fill="url(#ki-glow)" opacity={0.75} className="king-hero-flicker-svg" />
-          <rect x={x - 5} y={492} width={10} height={36} rx={4} fill="url(#ki-gold)" />
-          <path d={`M${x - 16} 440 L${x + 16} 440 L${x + 12} 492 L${x - 12} 492 Z`} fill="#fff4d6" stroke="url(#ki-gold)" strokeWidth={3} />
-          <circle cx={x} cy={466} r={6} fill="#fffbe8" />
-        </g>
-      ))}
-
-      {/* centre arch: the hero display */}
-      <path d={center} fill="url(#ki-teal)" />
-      <ellipse cx={800} cy={470} rx={200} ry={170} fill="url(#ki-glow)" opacity={0.45} />
-      <image href={logo} x={800 - 84} y={404} width={168} height={168 * LOGO_RATIO} preserveAspectRatio="xMidYMid meet" filter="url(#ki-shadow)" />
-      <g className="king-hero-float" style={{ transformOrigin: "800px 700px" }}>
-        <g filter="url(#ki-shadow)">
-          <Product src={products.heroLeft} cx={688} bottom={748} height={226} ratio={BAR_RATIO} rotate={-10} shadow={false} />
-          <Product src={products.heroRight} cx={912} bottom={748} height={226} ratio={BAR_RATIO} rotate={10} shadow={false} />
-          <Product src={products.hero} cx={800} bottom={758} height={212} ratio={TUB_RATIO} shadow={false} />
-        </g>
+      {/* King logo, centred on the teal arch; lights up as the doors open */}
+      <g ref={logoRef} style={{ opacity: 0 }}>
+        <ellipse cx={WALL_LOGO.x} cy={WALL_LOGO.y + logoH / 2} rx={92} ry={66} fill="url(#ks-logo-glow)" className="king-hero-flicker" />
+        <image
+          href={logo}
+          x={WALL_LOGO.x - WALL_LOGO.w / 2}
+          y={WALL_LOGO.y}
+          width={WALL_LOGO.w}
+          height={logoH}
+          preserveAspectRatio="xMidYMid meet"
+          filter="url(#ks-shadow)"
+        />
       </g>
-      {/* marble plinth */}
-      <rect x={636} y={752} width={328} height={38} rx={4} fill="url(#ki-marble)" />
-      <rect x={636} y={752} width={328} height={4} fill="url(#ki-gold)" />
-      <path d={center} fill="none" stroke="url(#ki-gold)" strokeWidth={9} />
 
-      {/* sparkles */}
-      {SPARKLES.map(([x, y, r, d], i) => (
-        <circle key={i} cx={x} cy={y} r={r} fill="#f3d27a" className="king-hero-twinkle" style={{ animationDelay: `${d}s` }} />
-      ))}
-
-      {/* counter: marble top, teal front with gold-framed panels */}
-      <rect x={-1200} y={790} width={INT_W + 2400} height={28} fill="url(#ki-marble)" />
-      <rect x={-1200} y={816} width={INT_W + 2400} height={5} fill="url(#ki-gold)" />
-      <rect x={-1200} y={821} width={INT_W + 2400} height={1400} fill={TEAL} />
-      {Array.from({ length: 12 }, (_, i) => -1000 + i * 320).map((x) => (
-        <rect key={x} x={x + 20} y={848} width={280} height={124} fill="none" stroke="url(#ki-gold)" strokeWidth={3} opacity={0.45} />
-      ))}
+      {/* counter display in front of the arch */}
+      <g filter="url(#ks-shadow)">
+        <Product src={products.heroLeft} cx={955} bottom={COUNTER_Y} height={100} ratio={BAR_RATIO} rotate={-9} shadow={false} />
+        <Product src={products.heroRight} cx={1047} bottom={COUNTER_Y} height={100} ratio={BAR_RATIO} rotate={9} shadow={false} />
+        <Product src={products.hero} cx={1001} bottom={COUNTER_Y + 1} height={86} ratio={TUB_RATIO} />
+      </g>
     </svg>
   )
 }
-
-const MARBLE_VEINS = [
-  "M-200 180 C 60 140, 140 260, 360 220 S 620 120, 760 200",
-  "M820 150 C 960 210, 1080 120, 1240 190 S 1520 260, 1800 170",
-  "M-100 330 C 40 380, 90 300, 160 360",
-  "M1440 300 C 1500 360, 1560 330, 1700 400",
-  "M480 300 C 520 330, 540 380, 520 420",
-  "M1090 250 C 1060 300, 1100 330, 1080 380",
-]
-
-const SPARKLES: [number, number, number, number][] = [
-  [470, 230, 2.5, 0],
-  [1130, 220, 2.5, 0.8],
-  [640, 170, 2, 1.6],
-  [960, 330, 2.5, 0.4],
-  [760, 120, 2, 2.6],
-  [880, 200, 2.5, 1.9],
-]
 
 // Petals start near the bougainvillea on both sides of the scene.
 const PETALS = [
@@ -1277,14 +1164,6 @@ const KEYFRAMES = `
 @keyframes king-hero-bounce {
   0%, 100% { transform: translateY(0); opacity: 0.55; }
   50% { transform: translateY(5px); opacity: 1; }
-}
-@keyframes king-hero-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-@keyframes king-hero-twinkle {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 1; }
 }
 @keyframes king-hero-pulse {
   0% { box-shadow: 0 0 0 0 rgba(250,176,1,0.55); }
@@ -1316,7 +1195,6 @@ const KEYFRAMES = `
   animation: king-hero-tumble 4s ease-in-out infinite;
 }
 .king-hero-flicker { animation: king-hero-flicker 3.2s ease-in-out infinite; }
-.king-hero-flicker-svg { animation: king-hero-flicker 3.6s ease-in-out infinite; }
 .king-hero-hint-ring {
   display: inline-flex; align-items: center; justify-content: center;
   width: 46px; height: 46px; border-radius: 999px; color: ${YELLOW};
@@ -1324,8 +1202,6 @@ const KEYFRAMES = `
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   animation: king-hero-pulse 2s ease-out infinite;
 }
-.king-hero-float { animation: king-hero-float 5s ease-in-out infinite; }
-.king-hero-twinkle { animation: king-hero-twinkle 2.8s ease-in-out infinite; }
 .king-hero-btn {
   display: inline-flex; align-items: center; gap: 10px;
   height: 52px; padding: 0 26px; border-radius: 999px;
@@ -1340,10 +1216,11 @@ const KEYFRAMES = `
 }
 .king-hero-btn--primary:hover { box-shadow: 0 14px 36px rgba(0,40,55,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
 .king-hero-btn--ghost {
-  color: #fff; border: 1.5px solid rgba(255,241,184,0.75); background: rgba(0,70,94,0.35);
+  color: #fff; border: 1.5px solid rgba(255,241,184,0.75); background: rgba(0,70,94,0.88);
+  box-shadow: 0 10px 30px rgba(0,40,55,0.3);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
-.king-hero-btn--ghost:hover { background: rgba(0,70,94,0.6); }
+.king-hero-btn--ghost:hover { background: rgba(0,70,94,1); }
 .king-hero-skip {
   position: absolute; right: clamp(12px, 2.5vw, 24px); bottom: clamp(14px, 2.4vw, 22px); z-index: 3;
   font-family: ${SANS}; font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
@@ -1356,7 +1233,7 @@ const KEYFRAMES = `
   .king-hero-btn { height: 46px; padding: 0 18px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .king-hero-float, .king-hero-twinkle, .king-hero-hint-ring, .king-hero-flicker, .king-hero-flicker-svg { animation: none; }
+  .king-hero-hint-ring, .king-hero-flicker { animation: none; }
   .king-hero-petal { display: none; }
 }
 `

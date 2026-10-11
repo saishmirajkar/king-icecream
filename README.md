@@ -3,10 +3,11 @@
 Landing-page **Section 1** for King Ice Cream. The visitor lands in front of
 the King storefront on a sunny Mediterranean terrace. The bougainvillea,
 potted flowers and trees sway in the breeze, the sea ripples and glints,
-petals drift down and the lanterns flicker. As they scroll, the gold glass
-doors swing open, the camera glides through the doorway, and they arrive
-inside a cream-marble and teal parlour where the real King products sit in
-arched niches, with the headline and CTAs.
+petals drift down and the lanterns flicker. Through the glass they can
+already see real King products on the shelves inside. As they scroll, the
+gold glass doors swing open, the King logo lights up on the teal wall, and
+the camera glides in and settles in front of the store's own shelves and
+counter, with the headline and CTAs.
 
 Built on the same scroll-lock / scrub idea as the 21st.dev
 `scroll-locked-video-hero` reference, but driven by the storefront artwork
@@ -20,7 +21,7 @@ public/store/storefront.webp                 ← storefront artwork, door leaves
 public/store/door-left.webp, door-right.webp ← the two door leaves, cut out to swing open
 public/store/wind-mask.png                   ← which pixels sway (red = plants) or ripple (green = sea)
 public/products/*.webp                       ← product photos, cut out on transparent backgrounds
-public/brand/king-logo.png                   ← logo, lit up on the arch inside the store and in the parlour
+public/brand/king-logo.png                   ← logo, centred on the teal wall inside the store
 app/page.tsx                                 ← demo landing page (hero + sample sections)
 app/reference/page.tsx                       ← the original video hero, for comparison
 ```
@@ -37,10 +38,9 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | Scroll progress | What happens |
 | --- | --- |
 | before scrolling | flowers and trees sway, the sea ripples, petals fall, lanterns flicker |
-| 0 – 45 % | camera eases toward the store, the gold glass doors swing inward and the King logo lights up on the arch inside |
-| 30 – 86 % | camera glides through the doorway at an even pace toward the arch inside |
-| 60 – 84 % | the parlour dissolves in, its arches, logo and shelves lined up with the ones seen through the door |
-| 86 – 100 % | headline, sub-copy and CTAs fade in |
+| 0 – 45 % | camera eases toward the store, the gold glass doors swing inward and the King logo lights up on the wall inside |
+| 28 – 90 % | camera glides through the doorway at an even pace and settles in front of the shelves |
+| 72 – 100 % | the room drops slightly out of focus behind the products; headline, sub-copy and CTAs fade in |
 
 * While the hero is at the top of the page, the page **does not scroll**: wheel,
   touch, and keyboard (↓ ↑ PgDn PgUp Space Home) only scrub the scene,
@@ -49,7 +49,7 @@ npm run dev        # http://localhost:3000   (reference: /reference)
   **unlocks** and continues to the next section. Scrolling back to the top
   **re-locks** it and plays the scene in reverse.
 * A small **Skip intro** button jumps to the end.
-* `prefers-reduced-motion`: no lock, the finished parlour is shown straight away.
+* `prefers-reduced-motion`: no lock, the finished view inside the store is shown straight away.
 * Touch: drag scrubs, with momentum on release.
 * The swaying plants use a small WebGL shader. It only runs while the
   storefront is on screen. Without WebGL the artwork shows as a still image.
@@ -110,9 +110,9 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | `headline` | `Every Scoop, A Royal Treat` | Final reveal (`<h2>`) |
 | `subheadline` | `Handcrafted ice creams made with the goodness of milk.` | |
 | `primaryCta` / `secondaryCta` | Explore Flavours / Find a Store | `{ label, href }` or `false` to hide |
-| `products` | the 7 photos in `public/products` | `{ hero, heroLeft, heroRight, tubs[], bars[] }`. Any key you pass replaces the default. `hero` stands front and centre in the parlour with `heroLeft` / `heroRight` either side; `tubs` and `bars` fill the side shelves |
+| `products` | the 7 photos in `public/products` | `{ hero, heroLeft, heroRight, tubs[], bars[] }`. Any key you pass replaces the default. `hero` stands on the counter with `heroLeft` / `heroRight` either side; `tubs` fill the left arch shelves, `bars` the right |
 | `assets` | the files in `public/store` | `{ storefront, doorLeft, doorRight, windMask, logo }`, if you host them elsewhere |
-| `scrubDistance` | `3400` | Scroll distance (px) for the whole scene. Higher = slower |
+| `scrubDistance` | `3000` | Scroll distance (px) for the whole scene. Higher = slower |
 | `showSkip` | `true` | Show the "Skip intro" button |
 | `className` / `style` | | Applied to the `<section>` |
 
@@ -143,4 +143,4 @@ sections in `app/page.tsx` use Tailwind classes.
 
 Scroll-lock scrub technique adapted from *MetroHero* by
 [Guglielmo Giannattasio](https://www.guglielmogiannattasio.it) (21st.dev).
-Storefront artwork and product photos are King Ice Cream's own; the parlour interior is SVG.
+Storefront artwork and product photos are King Ice Cream's own.
