@@ -7,47 +7,24 @@ import { ArrowRight, ChevronDown, MapPin } from "lucide-react"
 // KING ICE CREAM — scroll-locked "store doors opening" hero
 //
 // Same interaction model as the reference MetroHero (scroll-locked
-// scrub), but instead of seeking a video, scroll input drives a fully
-// illustrated King Ice Cream storefront:
+// scrub), but instead of seeking a video, scroll input drives the
+// King Ice Cream storefront artwork:
 //
-//   0.00 – 0.55  camera eases toward the boutique, glass doors swing in
+//   0.00 – 0.55  camera eases toward the store, the glass doors swing in
 //   0.40 – 0.88  camera flies through the doorway, warm light floods out
-//   0.80 – 1.00  the yellow parlour interior settles, headline + CTAs in
+//   0.80 – 1.00  the parlour settles, headline + CTAs fade in
+//
+// The storefront is alive before anyone scrolls: a small WebGL shader
+// sways the flowers and trees and ripples the sea (driven by a wind
+// mask), petals drift down and the lanterns flicker. Without WebGL the
+// same artwork shows as a still image.
 //
 // While the hero is at the top of the viewport the page is locked and
 // wheel / touch / keyboard input only scrubs the animation (forward and
 // backward). Once the reveal is finished and the user keeps scrolling
 // down, the page unlocks and continues normally; scrolling back up to
 // the top re-locks it and plays the scene in reverse.
-//
-// No video, no extra libraries (lucide-react for three icons only).
-// Everything is SVG + CSS transforms, so it is crisp on every screen.
 // ─────────────────────────────────────────────────────────────
-
-export interface KingStoreHeroProps {
-  /** Logo shown on the storefront sign. Transparent PNG/SVG works best. */
-  logoSrc?: string
-  /** Intro title shown in front of the store (fades out on scroll). */
-  title?: string
-  scrollHint?: string
-  /** Final reveal copy, shown once you are inside the parlour. */
-  /** Small caps line above the final headline. */
-  eyebrow?: string
-  headline?: string
-  subheadline?: string
-  primaryCta?: { label: string; href: string } | false
-  secondaryCta?: { label: string; href: string } | false
-  /** Text on the gold band of the awning (the brand tagline). */
-  awningText?: string
-  /** Product photos (transparent PNG/WebP) used in the windows and the parlour. */
-  products?: Partial<KingHeroProducts>
-  /** Total input distance (px) needed to scrub the full scene. */
-  scrubDistance?: number
-  /** Show a small "Skip intro" button while the intro is playing. */
-  showSkip?: boolean
-  className?: string
-  style?: React.CSSProperties
-}
 
 export interface KingHeroProducts {
   /** Front and centre inside the parlour (a tub works best). */
@@ -55,9 +32,44 @@ export interface KingHeroProducts {
   /** Bars standing either side of the hero. */
   heroLeft: string
   heroRight: string
-  /** Tubs and bars for the shop windows and the parlour shelves. */
+  /** Tubs and bars for the parlour shelves. */
   tubs: string[]
   bars: string[]
+}
+
+export interface KingStoreAssets {
+  /** Storefront artwork with the door leaves painted out (2000 × 1116). */
+  storefront: string
+  /** The two door leaves, cut out at their exact place in the artwork. */
+  doorLeft: string
+  doorRight: string
+  /** Wind mask (half size): red = foliage that sways, green = sea that ripples. */
+  windMask: string
+}
+
+export interface KingStoreHeroProps {
+  /** Intro title shown in front of the store (fades out on scroll). */
+  title?: string
+  /** Label above the animated arrow at the bottom. */
+  scrollHint?: string
+  /** Gold lettering on the teal fascia, left and right of the sign. `false` hides it. */
+  tagline?: [string, string] | false
+  /** Final reveal copy, shown once you are inside the parlour. */
+  eyebrow?: string
+  headline?: string
+  subheadline?: string
+  primaryCta?: { label: string; href: string } | false
+  secondaryCta?: { label: string; href: string } | false
+  /** Product photos (transparent PNG/WebP) used inside the parlour. */
+  products?: Partial<KingHeroProducts>
+  /** Storefront artwork layers. */
+  assets?: Partial<KingStoreAssets>
+  /** Total input distance (px) needed to scrub the full scene. */
+  scrubDistance?: number
+  /** Show a small "Skip intro" button while the intro is playing. */
+  showSkip?: boolean
+  className?: string
+  style?: React.CSSProperties
 }
 
 export const DEFAULT_PRODUCTS: KingHeroProducts = {
@@ -77,28 +89,41 @@ export const DEFAULT_PRODUCTS: KingHeroProducts = {
   ],
 }
 
+export const DEFAULT_ASSETS: KingStoreAssets = {
+  storefront: "/store/storefront.webp",
+  doorLeft: "/store/door-left.webp",
+  doorRight: "/store/door-right.webp",
+  windMask: "/store/wind-mask.png",
+}
+
 // Natural aspect ratios (width / height) of the product cut-outs
 const TUB_RATIO = 0.87
 const BAR_RATIO = 0.42
 
-// Brand palette (sampled from the King Ice Cream artwork)
-const BLUE = "#007191"
-const BLUE_DEEP = "#00465e"
-const BLUE_NIGHT = "#012a38"
+// Brand palette
+const TEAL = "#0b6a7c"
+const TEAL_DEEP = "#00465e"
 const YELLOW = "#fab001"
 const CREAM = "#fff6e3"
+const SKY = "#64b9fb"
+const STONE = "#ece2d4"
 
 const SERIF = "'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif"
 const SANS = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 const GOLD_CSS = "linear-gradient(180deg, #fff1b8 0%, #f9c846 28%, #d99a0b 55%, #f7cf5a 78%, #b97a00 100%)"
 const GOLD_CSS_H = "linear-gradient(90deg, #b97a00 0%, #f7cf5a 22%, #fff1b8 45%, #d99a0b 70%, #f9c846 100%)"
 
-// Storefront stage, in its own units. Everything in the facade is laid out
-// in this 1600 × 1100 space and the whole stage is scaled to the viewport.
-const STAGE_W = 1600
-const STAGE_H = 1100
-const DOOR = { x: 630, y: 490, w: 340, h: 390 } // the two glass doors
-const FOCUS = { x: 800, y: 690 } // camera zooms toward this point
+// Storefront artwork, in its own pixel units (2000 × 1116).
+const STAGE_W = 2000
+const STAGE_H = 1116
+const DOOR = { x: 803, y: 345, w: 394, h: 608 } // the doorway the camera flies through
+const LEAVES = { x: 800, y: 342, w: 400, h: 614 } // bounding box of both door leaves
+const LEAF = { w: 204, leftHinge: 3.5, rightHinge: 201, glass: { x: 18, y: 17, w: 166, h: 573 } }
+const FOCUS = { x: 1000, y: 650 } // camera zooms toward this point
+const LANTERNS = [
+  { x: 408, y: 498, r: 90 },
+  { x: 1590, y: 505, r: 90 },
+]
 // Interior (parlour) stage, scaled to cover the viewport
 const INT_W = 1600
 const INT_H = 1000
@@ -113,16 +138,16 @@ const smooth = (t: number) => t * t * (3 - 2 * t)
 const range = (p: number, start: number, end: number) => clamp((p - start) / (end - start))
 
 export default function KingStoreHero({
-  logoSrc = "/brand/king-logo.png",
   title = "A Royal Welcome Awaits",
   scrollHint = "Scroll",
+  tagline = ["THE TASTE", "OF ROYALTY"],
   eyebrow = "Welcome to the Kingdom",
   headline = "Every Scoop, A Royal Treat",
   subheadline = "Handcrafted ice creams made with the goodness of milk.",
   primaryCta = { label: "Explore Flavours", href: "#flavours" },
   secondaryCta = { label: "Find a Store", href: "#stores" },
-  awningText = "THE TASTE OF ROYALTY",
   products,
+  assets,
   scrubDistance = 2600,
   showSkip = true,
   className,
@@ -130,12 +155,13 @@ export default function KingStoreHero({
 }: KingStoreHeroProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const stillRef = useRef<HTMLImageElement>(null)
   const interiorRef = useRef<HTMLDivElement>(null)
   const leftDoorRef = useRef<HTMLDivElement>(null)
   const rightDoorRef = useRef<HTMLDivElement>(null)
-  const openSignRef = useRef<HTMLDivElement>(null)
   const doorGlowRef = useRef<HTMLDivElement>(null)
-  const floorLightRef = useRef<SVGPolygonElement>(null)
+  const petalsRef = useRef<HTMLDivElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
   const introRef = useRef<HTMLDivElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
@@ -144,6 +170,7 @@ export default function KingStoreHero({
   const progressBarRef = useRef<HTMLDivElement>(null)
   const skipHandlerRef = useRef<() => void>(() => {})
   const items: KingHeroProducts = { ...DEFAULT_PRODUCTS, ...products }
+  const art: KingStoreAssets = { ...DEFAULT_ASSETS, ...assets }
 
   useEffect(() => {
     const section = sectionRef.current
@@ -164,6 +191,17 @@ export default function KingStoreHero({
     let touchT = 0
     let touchVelocity = 0
     let inertia = 0
+    let inView = true
+
+    // Living storefront (WebGL wind). Falls back to the still <img>.
+    const wind = canvasRef.current ? createWindScene(canvasRef.current, art.storefront, art.windMask) : null
+    if (wind) {
+      wind.ready.then((ok) => {
+        if (!ok) return
+        wind.draw(performance.now() / 1000)
+        if (canvasRef.current) canvasRef.current.style.opacity = "1"
+      })
+    }
 
     // ── layout (recomputed on resize) ─────────────────────────
     let vw = 1
@@ -173,18 +211,18 @@ export default function KingStoreHero({
     let ty = 0
     let focusX = 0
     let focusY = 0
-    let zoomEnd = 6
+    let zoomEnd = 5
     let si = 1 // interior scale
 
     function measure() {
       vw = section!.clientWidth || window.innerWidth
       vh = section!.clientHeight || window.innerHeight
-      // Fit the full storefront height; on narrow (portrait) screens crop the
-      // sides so the doorway stays big, but never below ~82% of full height.
-      s = Math.min(vh / STAGE_H, Math.max(vw / 760, (vh / STAGE_H) * 0.82))
+      // Cover on landscape screens; on portrait screens keep ~1030px of the
+      // artwork across (doors, windows, potted flowers) and let sky and
+      // paving fill above and below.
+      s = Math.max(vw / STAGE_W, Math.min(vh / STAGE_H, vw / 1030))
       tx = (vw - STAGE_W * s) / 2
-      // Spare vertical space goes mostly to the floor, where the intro copy sits.
-      ty = (vh - STAGE_H * s) * 0.3
+      ty = (vh - STAGE_H * s) * (STAGE_H * s < vh ? 0.3 : 0.35)
       focusX = tx + FOCUS.x * s
       focusY = ty + FOCUS.y * s
       // Zoom needed for the doorway to swallow the whole viewport.
@@ -192,53 +230,58 @@ export default function KingStoreHero({
       const right = (DOOR.x + DOOR.w - FOCUS.x) * s
       const top = (FOCUS.y - DOOR.y) * s
       const bottom = (DOOR.y + DOOR.h - FOCUS.y) * s
-      zoomEnd = Math.max(focusX / left, (vw - focusX) / right, focusY / top, (vh - focusY) / bottom) * 1.15
+      zoomEnd = Math.max(focusX / left, (vw - focusX) / right, focusY / top, (vh - focusY) / bottom) * 1.1
       si = Math.max(vw / INT_W, vh / INT_H)
+      // Feather the artwork's top and bottom edge into sky / paving when they show.
+      const feather =
+        STAGE_H * s < vh - 1 ? "linear-gradient(180deg, transparent 0, #000 5%, #000 90%, transparent 100%)" : "none"
+      for (const el of [canvasRef.current, stillRef.current]) {
+        if (!el) continue
+        el.style.maskImage = feather
+        el.style.webkitMaskImage = feather
+      }
       rendered = -1
     }
 
     // ── scene ─────────────────────────────────────────────────
     function render(p: number) {
-      const door = easeInOutCubic(range(p, 0.1, 0.55))
+      const door = easeInOutCubic(range(p, 0.08, 0.5))
       const approach = smooth(range(p, 0, 0.55))
       const dive = easeInCubic(range(p, 0.4, 0.88))
-      const APPROACH_ZOOM = 1.45
-      const logZoom = Math.log(APPROACH_ZOOM) * approach + Math.log(zoomEnd / APPROACH_ZOOM) * dive
-      const zoom = Math.exp(logZoom)
-      const depth = logZoom / Math.log(zoomEnd) // 0 → 1 as we pass through
+      const APPROACH_ZOOM = 1.4
+      const zoom = Math.exp(Math.log(APPROACH_ZOOM) * approach + Math.log(zoomEnd / APPROACH_ZOOM) * dive)
 
       const stage = stageRef.current
       if (stage) {
         const sx = focusX + zoom * (tx - focusX)
         const sy = focusY + zoom * (ty - focusY)
         stage.style.transform = `translate3d(${sx}px, ${sy}px, 0) scale(${s * zoom})`
-        const fade = 1 - smooth(range(p, 0.76, 0.88))
+        const fade = 1 - smooth(range(p, 0.78, 0.88))
         stage.style.opacity = String(fade)
         stage.style.visibility = fade <= 0.001 ? "hidden" : "visible"
       }
 
-      const angle = door * 100
+      const angle = door * 96
       if (leftDoorRef.current) leftDoorRef.current.style.transform = `rotateY(${angle}deg)`
       if (rightDoorRef.current) rightDoorRef.current.style.transform = `rotateY(${-angle}deg)`
-      if (openSignRef.current) openSignRef.current.style.transform = `rotate(${Math.sin(door * Math.PI * 2) * 7}deg)`
+      for (const leaf of [leftDoorRef.current, rightDoorRef.current]) {
+        const glass = leaf?.firstElementChild as HTMLElement | null
+        if (glass) glass.style.opacity = String(Math.sin(door * Math.PI) * 0.9)
+      }
       if (doorGlowRef.current) doorGlowRef.current.style.opacity = String(door)
-      if (floorLightRef.current) floorLightRef.current.style.opacity = String(door * 0.95)
+      if (petalsRef.current) petalsRef.current.style.opacity = String(1 - range(p, 0.3, 0.6))
 
       const interior = interiorRef.current
       if (interior) {
-        // Interior sits "deeper" than the facade, so it grows slower (parallax)
-        // and drifts from the doorway to the centre of the screen.
-        const START = 0.42
-        const k = clamp(depth)
-        const scale = si * START * Math.pow(1 / START, k) * (1 + 0.04 * smooth(range(p, 0.85, 1)))
-        const ox = (focusX - vw / 2) * (1 - k)
-        const oy = (focusY - vh / 2) * (1 - k)
-        interior.style.transform = `translate3d(${vw / 2 + ox}px, ${vh / 2 + oy}px, 0) scale(${scale}) translate(${-INT_W / 2}px, ${-INT_H / 2}px)`
+        const k = easeOutCubic(range(p, 0.78, 1))
+        const scale = si * (1.14 - 0.14 * k)
+        interior.style.transform = `translate3d(${vw / 2}px, ${vh / 2}px, 0) scale(${scale}) translate(${-INT_W / 2}px, ${-INT_H / 2}px)`
+        interior.style.visibility = p > 0.7 ? "visible" : "hidden"
       }
 
       if (flashRef.current) {
-        const f = clamp(1 - Math.abs(p - 0.82) / 0.1)
-        flashRef.current.style.opacity = String(Math.pow(f, 1.6) * 0.9)
+        const f = clamp(1 - Math.abs(p - 0.83) / 0.09)
+        flashRef.current.style.opacity = String(Math.pow(f, 1.6) * 0.92)
       }
 
       if (introRef.current) {
@@ -371,7 +414,7 @@ export default function KingStoreHero({
     }
 
     // ── loop ──────────────────────────────────────────────────
-    function frame() {
+    function frame(now: number) {
       if (inertia !== 0) {
         if (locked) handleInput(inertia, 90)
         inertia *= 0.9
@@ -384,6 +427,8 @@ export default function KingStoreHero({
         render(current)
         rendered = current
       }
+      // The wind only needs drawing while the storefront is on screen.
+      if (wind && inView && current < 0.88 && !document.hidden) wind.draw(now / 1000)
       rafId = requestAnimationFrame(frame)
     }
 
@@ -394,6 +439,10 @@ export default function KingStoreHero({
       rendered = current
     })
     ro.observe(section)
+    const io = new IntersectionObserver(([entry]) => {
+      inView = entry?.isIntersecting ?? true
+    })
+    io.observe(section)
 
     if (reduceMotion) {
       // Skip the choreography: show the finished parlour, never lock.
@@ -401,7 +450,11 @@ export default function KingStoreHero({
       started = true
       render(1)
       section.style.touchAction = "pan-y"
-      return () => ro.disconnect()
+      return () => {
+        ro.disconnect()
+        io.disconnect()
+        wind?.dispose()
+      }
     }
 
     const rect = section.getBoundingClientRect()
@@ -426,6 +479,7 @@ export default function KingStoreHero({
 
     return () => {
       ro.disconnect()
+      io.disconnect()
       window.removeEventListener("wheel", onWheel)
       window.removeEventListener("touchstart", onTouchStart)
       window.removeEventListener("touchmove", onTouchMove)
@@ -433,9 +487,11 @@ export default function KingStoreHero({
       window.removeEventListener("keydown", onKeyDown)
       window.removeEventListener("scroll", onScroll)
       cancelAnimationFrame(rafId)
+      wind?.dispose()
       unlock()
     }
-  }, [scrubDistance])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrubDistance, art.storefront, art.windMask])
 
   return (
     <section
@@ -448,7 +504,7 @@ export default function KingStoreHero({
         minHeight: 480,
         width: "100%",
         overflow: "hidden",
-        background: BLUE_NIGHT,
+        background: SKY,
         touchAction: "none",
         isolation: "isolate",
         ...style,
@@ -468,6 +524,7 @@ export default function KingStoreHero({
           height: INT_H,
           transformOrigin: "0 0",
           pointerEvents: "none",
+          visibility: "hidden",
         }}
       >
         <Parlour products={items} />
@@ -487,39 +544,135 @@ export default function KingStoreHero({
           pointerEvents: "none",
         }}
       >
-        <Storefront logoSrc={logoSrc} awningText={awningText} products={items} floorLightRef={floorLightRef} />
+        {/* sky above and paving below, for tall (portrait) screens */}
+        <div style={{ position: "absolute", left: -2000, right: -2000, top: -2400, height: 2500, background: `linear-gradient(180deg, #2f8fe0 0%, ${SKY} 100%)` }} />
+        <div style={{ position: "absolute", left: -2000, right: -2000, top: STAGE_H - 100, height: 2500, background: `linear-gradient(180deg, ${STONE} 0%, #ddd0be 60%)` }} />
 
-        {/* Glass doors (3D) */}
+        {/* still artwork (also the fallback when WebGL is unavailable) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={stillRef}
+          src={art.storefront}
+          alt=""
+          draggable={false}
+          style={{ position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H, display: "block" }}
+        />
+        {/* the same artwork, alive: swaying flowers and a rippling sea */}
+        <canvas
+          ref={canvasRef}
+          width={STAGE_W}
+          height={STAGE_H}
+          style={{ position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H, opacity: 0, transition: "opacity .6s ease" }}
+        />
+
+        {/* lantern glow */}
+        {LANTERNS.map((l) => (
+          <div
+            key={l.x}
+            className="king-hero-flicker"
+            style={{
+              position: "absolute",
+              left: l.x - l.r,
+              top: l.y - l.r,
+              width: l.r * 2,
+              height: l.r * 2,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(255,226,150,0.65) 0%, rgba(255,200,90,0.22) 35%, rgba(255,200,90,0) 70%)",
+              mixBlendMode: "screen",
+              animationDelay: l.x > 1000 ? "-1.3s" : "0s",
+            }}
+          />
+        ))}
+
+        {/* brand tagline on the teal fascia */}
+        {tagline && (
+          <svg viewBox={`0 0 ${STAGE_W} ${STAGE_H}`} width={STAGE_W} height={STAGE_H} style={{ position: "absolute", inset: 0 }}>
+            <defs>
+              <linearGradient id="kg-tagline-gold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#fff1b8" />
+                <stop offset="0.45" stopColor="#f3c552" />
+                <stop offset="1" stopColor="#c48a12" />
+              </linearGradient>
+              <filter id="kg-tagline-shadow" x="-10%" y="-40%" width="120%" height="180%">
+                <feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#00242f" floodOpacity="0.55" />
+              </filter>
+            </defs>
+            {tagline.map((text, i) => (
+              <text
+                key={i}
+                x={i === 0 ? 630 : 1362}
+                y={246}
+                textAnchor="middle"
+                fontFamily={SERIF}
+                fontSize={31}
+                fontWeight={700}
+                letterSpacing={6}
+                fill="url(#kg-tagline-gold)"
+                filter="url(#kg-tagline-shadow)"
+              >
+                {text}
+              </text>
+            ))}
+          </svg>
+        )}
+
+        {/* Glass doors (3D), cut from the artwork */}
         <div
           style={{
             position: "absolute",
-            left: DOOR.x,
-            top: DOOR.y,
-            width: DOOR.w,
-            height: DOOR.h,
-            perspective: 900,
-            perspectiveOrigin: "50% 45%",
+            left: LEAVES.x,
+            top: LEAVES.y,
+            width: LEAVES.w,
+            height: LEAVES.h,
+            perspective: 1100,
+            perspectiveOrigin: "50% 50%",
           }}
         >
-          <GlassDoor side="left" doorRef={leftDoorRef} openSignRef={openSignRef} />
-          <GlassDoor side="right" doorRef={rightDoorRef} />
+          <DoorLeaf side="left" src={art.doorLeft} leafRef={leftDoorRef} />
+          <DoorLeaf side="right" src={art.doorRight} leafRef={rightDoorRef} />
         </div>
 
-        {/* Warm light pouring out of the doorway */}
+        {/* Warm light from inside as the doors open */}
         <div
           ref={doorGlowRef}
           style={{
             position: "absolute",
-            left: DOOR.x - 360,
-            top: DOOR.y - 300,
-            width: DOOR.w + 720,
-            height: DOOR.h + 520,
-            background:
-              "radial-gradient(ellipse 38% 46% at 50% 56%, rgba(255,222,140,0.45), rgba(255,190,60,0.18) 45%, rgba(255,180,40,0) 72%)",
+            left: DOOR.x - 300,
+            top: DOOR.y - 160,
+            width: DOOR.w + 600,
+            height: DOOR.h + 400,
+            background: "radial-gradient(ellipse 34% 40% at 50% 52%, rgba(255,232,170,0.5), rgba(255,210,120,0.16) 50%, rgba(255,210,120,0) 75%)",
             mixBlendMode: "screen",
             opacity: 0,
           }}
         />
+      </div>
+
+      {/* Drifting bougainvillea petals */}
+      <div ref={petalsRef} aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        {PETALS.map((pt, i) => (
+          <span
+            key={i}
+            className="king-hero-petal"
+            style={
+              {
+                left: `${pt.x}%`,
+                animationDuration: `${pt.dur}s`,
+                animationDelay: `${pt.delay}s`,
+                "--drift": `${pt.drift}vw`,
+              } as React.CSSProperties
+            }
+          >
+            <span
+              style={{
+                width: pt.size,
+                height: pt.size * 0.75,
+                background: pt.color,
+                animationDuration: `${pt.dur / 4}s`,
+              }}
+            />
+          </span>
+        ))}
       </div>
 
       {/* Light flash as we cross the threshold */}
@@ -529,19 +682,8 @@ export default function KingStoreHero({
         style={{
           position: "absolute",
           inset: 0,
-          background: "radial-gradient(ellipse at 50% 55%, #fffaf0 0%, #ffe6a6 45%, rgba(250,176,1,0.85) 100%)",
+          background: "radial-gradient(ellipse at 50% 55%, #fffdf7 0%, #fff1d2 50%, #f6dfb3 100%)",
           opacity: 0,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Cinematic vignette */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "radial-gradient(ellipse 120% 90% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,18,26,0.55) 100%)",
           pointerEvents: "none",
         }}
       />
@@ -553,19 +695,21 @@ export default function KingStoreHero({
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: "calc(clamp(16px, 3.5vh, 32px) + 90px)",
+          bottom: 0,
+          paddingBottom: "calc(clamp(16px, 3.5vh, 32px) + 90px)",
+          paddingTop: "18vh",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 10,
-          padding: "0 6%",
           textAlign: "center",
+          background: "linear-gradient(180deg, rgba(0,36,47,0) 0%, rgba(0,36,47,0.45) 45%, rgba(0,36,47,0.78) 100%)",
           pointerEvents: "none",
         }}
       >
         <h1
           style={{
             margin: 0,
+            padding: "0 6%",
             fontFamily: SERIF,
             fontWeight: 700,
             fontSize: "clamp(28px, 3.4vw, 48px)",
@@ -640,7 +784,7 @@ export default function KingStoreHero({
               fontWeight: 700,
               letterSpacing: "0.38em",
               textTransform: "uppercase",
-              color: BLUE,
+              color: "#a87412",
             }}
           >
             {eyebrow}
@@ -653,8 +797,8 @@ export default function KingStoreHero({
               fontSize: "clamp(32px, 5.4vw, 76px)",
               lineHeight: 1.02,
               letterSpacing: "-0.015em",
-              color: BLUE_DEEP,
-              textShadow: "0 2px 0 rgba(255,241,184,0.6)",
+              color: TEAL_DEEP,
+              textShadow: "0 2px 0 rgba(255,255,255,0.6)",
             }}
           >
             {headline}
@@ -695,18 +839,13 @@ export default function KingStoreHero({
       </div>
 
       {showSkip && (
-        <button
-          ref={skipRef}
-          type="button"
-          onClick={() => skipHandlerRef.current()}
-          className="king-hero-skip"
-        >
+        <button ref={skipRef} type="button" onClick={() => skipHandlerRef.current()} className="king-hero-skip">
           Skip intro
         </button>
       )}
 
       {/* Gold progress line */}
-      <div aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: "rgba(255,255,255,0.1)" }}>
+      <div aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: "rgba(255,255,255,0.15)" }}>
         <div
           ref={progressBarRef}
           style={{
@@ -723,369 +862,171 @@ export default function KingStoreHero({
 }
 
 // ─────────────────────────────────────────────────────────────
-// Glass door
+// Door leaf: the gold frame cut from the artwork, plus a glass
+// sheen that only shows while the door is moving.
 // ─────────────────────────────────────────────────────────────
-function GlassDoor({
+function DoorLeaf({
   side,
-  doorRef,
-  openSignRef,
+  src,
+  leafRef,
 }: {
   side: "left" | "right"
-  doorRef: React.RefObject<HTMLDivElement | null>
-  openSignRef?: React.RefObject<HTMLDivElement | null>
+  src: string
+  leafRef: React.RefObject<HTMLDivElement | null>
 }) {
   const isLeft = side === "left"
-  const w = DOOR.w / 2
   return (
     <div
-      ref={doorRef}
+      ref={leafRef}
       style={{
         position: "absolute",
         top: 0,
-        left: isLeft ? 0 : w,
-        width: w,
-        height: DOOR.h,
-        transformOrigin: isLeft ? "left center" : "right center",
-        background: GOLD_CSS_H,
-        padding: 9,
-        boxSizing: "border-box",
-        boxShadow: "inset 0 0 0 1px rgba(90,55,0,0.55), 0 0 0 1px rgba(0,0,0,0.25)",
+        left: isLeft ? 0 : LEAVES.w - LEAF.w,
+        width: LEAF.w,
+        height: LEAVES.h,
+        transformOrigin: `${isLeft ? LEAF.leftHinge : LEAF.rightHinge}px 50%`,
       }}
     >
-      {/* glass */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          background:
-            "linear-gradient(115deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.05) 22%, rgba(255,255,255,0) 40%, rgba(255,255,255,0.12) 52%, rgba(255,255,255,0) 60%), linear-gradient(180deg, rgba(0,42,58,0.5), rgba(0,26,38,0.68))",
-          boxShadow: "inset 0 0 0 1px rgba(255,236,170,0.35), inset 0 0 24px rgba(0,20,30,0.35)",
-          overflow: "hidden",
-        }}
-      >
-
-        {/* mid rail */}
-        <div style={{ position: "absolute", left: 0, right: 0, top: "62%", height: 7, background: GOLD_CSS }} />
-        {/* kick plate */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: "13%",
-            background: GOLD_CSS,
-            boxShadow: "inset 0 2px 0 rgba(255,255,255,0.45)",
-          }}
-        />
-        {/* hanging OPEN sign */}
-        {openSignRef && (
-          <div
-            ref={openSignRef}
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "40%",
-              marginLeft: -40,
-              width: 80,
-              transformOrigin: "50% -18px",
-            }}
-          >
-            <svg viewBox="0 0 80 18" width={80} height={18} style={{ position: "absolute", top: -18, left: 0 }}>
-              <path d="M14 18 L40 2 L66 18" fill="none" stroke="#f7cf5a" strokeWidth={1.4} />
-              <circle cx={40} cy={2} r={2} fill="#f7cf5a" />
-            </svg>
-            <div
-              style={{
-                background: BLUE_DEEP,
-                border: "2px solid #f7cf5a",
-                borderRadius: 6,
-                padding: "5px 0 4px",
-                textAlign: "center",
-                fontFamily: SERIF,
-                fontWeight: 700,
-                fontSize: 15,
-                letterSpacing: "0.22em",
-                color: "#ffd769",
-                boxShadow: "0 6px 14px rgba(0,0,0,0.35)",
-              }}
-            >
-              OPEN
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* pull handle on the meeting edge */}
       <div
         style={{
           position: "absolute",
-          top: "38%",
-          [isLeft ? "right" : "left"]: 18,
-          width: 9,
-          height: "30%",
-          borderRadius: 6,
-          background: GOLD_CSS_H,
-          boxShadow: "0 4px 10px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(90,55,0,0.5)",
+          left: LEAF.glass.x,
+          top: LEAF.glass.y,
+          width: LEAF.glass.w,
+          height: LEAF.glass.h,
+          background:
+            "linear-gradient(115deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.06) 26%, rgba(255,255,255,0) 42%, rgba(255,255,255,0.16) 55%, rgba(255,255,255,0) 64%), rgba(220,235,240,0.12)",
+          opacity: 0,
         }}
       />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────
-// Storefront facade (static SVG, 1600 × 1100 stage units)
+// WebGL wind: sways foliage and ripples the sea using a mask.
 // ─────────────────────────────────────────────────────────────
-const EXT = 1500 // how far walls / floor extend beyond the stage
+const VERT = `
+attribute vec2 aPos;
+varying vec2 vUv;
+void main() {
+  vUv = aPos * 0.5 + 0.5;
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`
 
-function scallopPath(x0: number, x1: number, y: number, r: number) {
-  let d = `M${x0} ${y - 1}`
-  for (let x = x0; x < x1; x += r * 2) d += ` A${r} ${r} 0 0 0 ${x + r * 2} ${y - 1}`
-  return d + ` L${x1} ${y - 52} L${x0} ${y - 52} Z`
+const FRAG = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform sampler2D uImg;
+uniform sampler2D uMask;
+uniform float uTime;
+uniform vec2 uRes;
+varying vec2 vUv;
+void main() {
+  vec2 px = vUv * uRes;
+  vec2 m = texture2D(uMask, vUv).rg;
+  float t = uTime;
+  // Foliage: slow gusts rolling across the scene + leaf-level flutter.
+  float gust = 0.55 + 0.45 * sin(t * 0.55 - px.x * 0.0025) * sin(t * 0.31 + 1.7);
+  float sway = sin(t * 1.35 + px.y * 0.035 + px.x * 0.008) + 0.45 * sin(t * 2.9 + px.x * 0.06 + px.y * 0.025);
+  float flutter = sin(t * 4.3 + px.x * 0.21 + px.y * 0.17) * 0.35;
+  vec2 off = vec2((sway * gust + flutter) * 2.6, (cos(t * 1.9 + px.x * 0.03) * 0.6 + flutter * 0.6)) * m.r;
+  // Sea: gentle horizontal drift and vertical ripple.
+  off += vec2(sin(t * 0.9 + px.y * 0.35) * 0.9, sin(t * 2.2 + px.x * 0.045 + px.y * 0.6) * 1.1) * m.g;
+  vec4 c = texture2D(uImg, (px - off) / uRes);
+  // Sun glints on the water, broken up so they never read as a grid.
+  float g = sin(px.x * 0.19 + t * 1.6 + sin(px.y * 0.11) * 3.0) * sin(px.y * 0.73 - t * 1.1 + px.x * 0.02);
+  float patch = smoothstep(0.35, 1.0, sin(px.x * 0.013 + px.y * 0.05 + t * 0.35) * sin(px.x * 0.031 - t * 0.2 + 1.3));
+  c.rgb += pow(max(g, 0.0), 24.0) * 0.5 * patch * m.g;
+  gl_FragColor = vec4(c.rgb, 1.0);
+}`
+
+function createWindScene(canvas: HTMLCanvasElement, imgSrc: string, maskSrc: string) {
+  let gl: WebGLRenderingContext | null = null
+  try {
+    gl = canvas.getContext("webgl", { alpha: false, antialias: false, premultipliedAlpha: false }) as WebGLRenderingContext | null
+  } catch {
+    gl = null
+  }
+  if (!gl) return null
+  const g = gl
+
+  const compile = (type: number, src: string) => {
+    const sh = g.createShader(type)!
+    g.shaderSource(sh, src)
+    g.compileShader(sh)
+    return g.getShaderParameter(sh, g.COMPILE_STATUS) ? sh : null
+  }
+  const vs = compile(g.VERTEX_SHADER, VERT)
+  const fs = compile(g.FRAGMENT_SHADER, FRAG)
+  if (!vs || !fs) return null
+  const prog = g.createProgram()!
+  g.attachShader(prog, vs)
+  g.attachShader(prog, fs)
+  g.linkProgram(prog)
+  if (!g.getProgramParameter(prog, g.LINK_STATUS)) return null
+  g.useProgram(prog)
+
+  const buf = g.createBuffer()
+  g.bindBuffer(g.ARRAY_BUFFER, buf)
+  g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW)
+  const aPos = g.getAttribLocation(prog, "aPos")
+  g.enableVertexAttribArray(aPos)
+  g.vertexAttribPointer(aPos, 2, g.FLOAT, false, 0, 0)
+  const uTime = g.getUniformLocation(prog, "uTime")
+  g.uniform2f(g.getUniformLocation(prog, "uRes"), canvas.width, canvas.height)
+  g.uniform1i(g.getUniformLocation(prog, "uImg"), 0)
+  g.uniform1i(g.getUniformLocation(prog, "uMask"), 1)
+
+  let ok = false
+  let disposed = false
+  const load = (src: string, unit: number) =>
+    new Promise<boolean>((resolve) => {
+      const img = new Image()
+      img.decoding = "async"
+      img.onload = () => {
+        if (disposed) return resolve(false)
+        const tex = g.createTexture()
+        g.activeTexture(g.TEXTURE0 + unit)
+        g.bindTexture(g.TEXTURE_2D, tex)
+        g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL, true)
+        g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, img)
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR)
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR)
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE)
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE)
+        resolve(true)
+      }
+      img.onerror = () => resolve(false)
+      img.src = src
+    })
+
+  const ready = Promise.all([load(imgSrc, 0), load(maskSrc, 1)]).then(([a, b]) => (ok = a && b && !disposed))
+
+  return {
+    ready,
+    draw(time: number) {
+      if (!ok) return
+      g.uniform1f(uTime, time % 1000)
+      g.drawArrays(g.TRIANGLE_STRIP, 0, 4)
+    },
+    dispose() {
+      disposed = true
+      ok = false
+      g.getExtension("WEBGL_lose_context")?.loseContext()
+    },
+  }
 }
 
-function Storefront({
-  logoSrc,
-  awningText,
-  products,
-  floorLightRef,
-}: {
-  logoSrc: string
-  awningText: string
-  products: KingHeroProducts
-  floorLightRef: React.RefObject<SVGPolygonElement | null>
-}) {
-  const doorL = DOOR.x
-  const doorR = DOOR.x + DOOR.w
-  const ground = DOOR.y + DOOR.h // 880
-  const holeTop = 412
-  return (
-    <svg
-      viewBox={`0 0 ${STAGE_W} ${STAGE_H}`}
-      width={STAGE_W}
-      height={STAGE_H}
-      style={{ position: "absolute", inset: 0, overflow: "visible" }}
-    >
-      <defs>
-        <linearGradient id="kg-gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff1b8" />
-          <stop offset="0.28" stopColor="#f9c846" />
-          <stop offset="0.55" stopColor="#d99a0b" />
-          <stop offset="0.78" stopColor="#f7cf5a" />
-          <stop offset="1" stopColor="#b97a00" />
-        </linearGradient>
-        <linearGradient id="kg-gold-h" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#b97a00" />
-          <stop offset="0.25" stopColor="#f7cf5a" />
-          <stop offset="0.5" stopColor="#fff1b8" />
-          <stop offset="0.75" stopColor="#d99a0b" />
-          <stop offset="1" stopColor="#f9c846" />
-        </linearGradient>
-        <linearGradient id="kg-flute-g" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#003f53" />
-          <stop offset="0.45" stopColor="#005b77" />
-          <stop offset="0.6" stopColor="#00627f" />
-          <stop offset="1" stopColor="#003f53" />
-        </linearGradient>
-        <pattern id="kg-flute" width="26" height="26" patternUnits="userSpaceOnUse">
-          <rect width="26" height="26" fill="url(#kg-flute-g)" />
-        </pattern>
-        <radialGradient id="kg-wall-shade" cx="800" cy="560" r="1000" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffcf6a" stopOpacity="0.16" />
-          <stop offset="0.45" stopColor="#000" stopOpacity="0" />
-          <stop offset="1" stopColor="#001018" stopOpacity="0.7" />
-        </radialGradient>
-        <radialGradient id="kg-warm">
-          <stop offset="0" stopColor="#ffd77a" stopOpacity="0.95" />
-          <stop offset="0.45" stopColor="#ffb52e" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#ffb52e" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="kg-window" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff3c8" />
-          <stop offset="0.5" stopColor="#ffcd52" />
-          <stop offset="1" stopColor="#f0a000" />
-        </linearGradient>
-        <linearGradient id="kg-awning" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0a8bb2" />
-          <stop offset="1" stopColor={BLUE_DEEP} />
-        </linearGradient>
-        <linearGradient id="kg-floor" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#02303f" />
-          <stop offset="0.35" stopColor="#011d27" />
-          <stop offset="1" stopColor="#000c11" />
-        </linearGradient>
-        <linearGradient id="kg-carpet" gradientUnits="userSpaceOnUse" x1="0" y1={ground} x2="0" y2={ground + 700}>
-          <stop offset="0" stopColor="#00627f" />
-          <stop offset="1" stopColor="#003347" />
-        </linearGradient>
-        <linearGradient id="kg-spill" gradientUnits="userSpaceOnUse" x1="0" y1={ground} x2="0" y2={ground + 420}>
-          <stop offset="0" stopColor="#ffd67a" stopOpacity="0.75" />
-          <stop offset="1" stopColor="#ffd67a" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id="kg-marble" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fbf4e6" />
-          <stop offset="1" stopColor="#cbbd9f" />
-        </linearGradient>
-        <radialGradient id="kg-topiary" cx="0.38" cy="0.32" r="0.75">
-          <stop offset="0" stopColor="#3f9a5c" />
-          <stop offset="0.6" stopColor="#1d5c35" />
-          <stop offset="1" stopColor="#0d3520" />
-        </radialGradient>
-        <linearGradient id="kg-glass-shine" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.35" />
-          <stop offset="0.35" stopColor="#fff" stopOpacity="0" />
-          <stop offset="0.55" stopColor="#fff" stopOpacity="0.12" />
-          <stop offset="0.65" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-        <filter id="kg-drop" x="-20%" y="-20%" width="140%" height="160%">
-          <feDropShadow dx="0" dy="10" stdDeviation="10" floodColor="#000" floodOpacity="0.45" />
-        </filter>
-
-      </defs>
-
-      {/* ── Wall with doorway cut-out ── */}
-      <path
-        fill="url(#kg-flute)"
-        d={`M${-EXT} ${-EXT} H${STAGE_W + EXT} V${ground} H${doorR} V${holeTop} H${doorL} V${ground} H${-EXT} Z`}
-      />
-      <path
-        fill="url(#kg-wall-shade)"
-        d={`M${-EXT} ${-EXT} H${STAGE_W + EXT} V${ground} H${doorR} V${holeTop} H${doorL} V${ground} H${-EXT} Z`}
-      />
-      <rect x={-EXT} y={-EXT} width={STAGE_W + EXT * 2} height={EXT + 14} fill="#012836" />
-
-      {/* cornice + dentils */}
-      <rect x={-EXT} y={14} width={STAGE_W + EXT * 2} height={28} fill="url(#kg-gold)" />
-      <rect x={-EXT} y={42} width={STAGE_W + EXT * 2} height={8} fill="#002f3f" />
-      {Array.from({ length: Math.ceil((STAGE_W + EXT * 2) / 26) }, (_, i) => (
-        <rect key={i} x={-EXT + i * 26 + 5} y={50} width={14} height={12} fill="#d6a12a" opacity={0.85} />
-      ))}
-
-      {/* pilasters */}
-      {[150, 1410].map((x) => (
-        <g key={x}>
-          <rect x={x} y={62} width={40} height={ground - 62} fill="#003d51" />
-          <rect x={x + 6} y={62} width={3} height={ground - 62} fill="#d6a12a" opacity={0.7} />
-          <rect x={x + 31} y={62} width={3} height={ground - 62} fill="#d6a12a" opacity={0.7} />
-          <rect x={x - 8} y={62} width={56} height={14} fill="url(#kg-gold)" />
-          <rect x={x - 8} y={ground - 22} width={56} height={22} fill="url(#kg-gold)" />
-        </g>
-      ))}
-
-      {/* ── Sign ── */}
-      <ellipse cx={800} cy={190} rx={300} ry={150} fill="url(#kg-warm)" opacity={0.42} />
-      <line x1={700} y1={62} x2={700} y2={120} stroke="url(#kg-gold-h)" strokeWidth={5} />
-      <line x1={900} y1={62} x2={900} y2={120} stroke="url(#kg-gold-h)" strokeWidth={5} />
-      <image href={logoSrc} x={630} y={76} width={340} height={221} preserveAspectRatio="xMidYMid meet" filter="url(#kg-drop)" />
-
-      {/* ── Windows ── */}
-      {[250, 1070].map((x, i) => (
-        <ShopWindow key={x} x={x} tubs={rotate(products.tubs, i * 2).slice(0, 3)} bars={rotate(products.bars, i)} />
-      ))}
-
-      {/* ── Awning ── */}
-      <rect x={200} y={392} width={1200} height={44} fill="#000" opacity={0.28} style={{ filter: "blur(6px)" }} />
-      <polygon points="232,300 1368,300 1400,352 200,352" fill="url(#kg-awning)" />
-      {Array.from({ length: 19 }, (_, i) => (
-        <polygon
-          key={i}
-          points={`${262 + i * 60},300 ${290 + i * 60},300 ${292 + i * 60.7},352 ${262 + i * 60.7},352`}
-          fill="#fff"
-          opacity={0.05}
-        />
-      ))}
-      <rect x={226} y={296} width={1148} height={6} rx={3} fill="url(#kg-gold)" />
-      <rect x={200} y={352} width={1200} height={34} fill={BLUE_DEEP} />
-      <rect x={200} y={352} width={1200} height={3} fill="url(#kg-gold-h)" />
-      <path d={scallopPath(200, 1400, 404, 20)} fill={BLUE_DEEP} stroke="#e9b53a" strokeWidth={2.5} />
-      <text
-        x={800}
-        y={376}
-        textAnchor="middle"
-        fontFamily={SERIF}
-        fontSize={17}
-        fontWeight={700}
-        letterSpacing={7}
-        fill="#f7cf5a"
-        style={{ whiteSpace: "pre" }}
-      >
-        {awningText}
-      </text>
-
-      {/* ── Sconces ── */}
-      {[578, 1022].map((x) => (
-        <g key={x}>
-          <circle cx={x} cy={478} r={95} fill="url(#kg-warm)" opacity={0.6} />
-          <rect x={x - 9} y={500} width={18} height={30} rx={4} fill="url(#kg-gold)" />
-          <path d={`M${x} 500 V488`} stroke="#d6a12a" strokeWidth={3} />
-          <path d={`M${x - 14} 452 L${x + 14} 452 L${x + 11} 490 L${x - 11} 490 Z`} fill="#ffe7a1" stroke="url(#kg-gold)" strokeWidth={3} />
-          <path d={`M${x - 17} 452 L${x} 438 L${x + 17} 452 Z`} fill="url(#kg-gold)" />
-          <circle cx={x} cy={472} r={6} fill="#fff8e1" />
-        </g>
-      ))}
-
-      {/* ── Door frame + transom with the King sunrise ── */}
-      <rect x={doorL} y={holeTop} width={DOOR.w} height={DOOR.y - holeTop} fill="rgba(0,36,50,0.55)" />
-      <g transform={`translate(800 ${DOOR.y - 4})`}>
-        {Array.from({ length: 9 }, (_, i) => {
-          const a = Math.PI + (Math.PI * (i + 0.5)) / 9
-          return (
-            <line
-              key={i}
-              x1={Math.cos(a) * 34}
-              y1={Math.sin(a) * 34}
-              x2={Math.cos(a) * 60}
-              y2={Math.sin(a) * 60}
-              stroke={YELLOW}
-              strokeWidth={5}
-              strokeLinecap="round"
-            />
-          )
-        })}
-        <path d="M-26 0 A26 26 0 0 1 26 0" fill="none" stroke={YELLOW} strokeWidth={6} />
-        <path d="M-14 0 A14 14 0 0 1 14 0" fill="none" stroke={YELLOW} strokeWidth={5} />
-      </g>
-      <rect x={doorL} y={holeTop} width={DOOR.w} height={DOOR.y - holeTop} fill="url(#kg-glass-shine)" />
-      <rect x={doorL - 12} y={DOOR.y - 6} width={DOOR.w + 24} height={8} fill="url(#kg-gold)" />
-      <rect x={doorL - 12} y={holeTop - 12} width={12} height={ground - holeTop + 12} fill="url(#kg-gold-h)" />
-      <rect x={doorR} y={holeTop - 12} width={12} height={ground - holeTop + 12} fill="url(#kg-gold-h)" />
-      <rect x={doorL - 12} y={holeTop - 12} width={DOOR.w + 24} height={12} fill="url(#kg-gold)" />
-      <rect x={doorL - 16} y={holeTop - 16} width={DOOR.w + 32} height={ground - holeTop + 16} fill="none" stroke="#001e29" strokeWidth={4} />
-
-      {/* ── Topiaries ── */}
-      {[575, 1025].map((x) => (
-        <g key={x}>
-          <ellipse cx={x} cy={ground + 2} rx={36} ry={6} fill="#000" opacity={0.45} />
-          <rect x={x - 3} y={752} width={6} height={70} fill="#5b3a1c" />
-          <circle cx={x} cy={735} r={40} fill="url(#kg-topiary)" />
-          <circle cx={x} cy={735} r={40} fill="url(#kg-warm)" opacity={0.18} />
-          <path d={`M${x - 28} 818 H${x + 28} L${x + 22} ${ground} H${x - 22} Z`} fill="url(#kg-gold)" />
-          <rect x={x - 32} y={812} width={64} height={9} rx={2} fill="url(#kg-gold)" />
-        </g>
-      ))}
-
-      {/* ── Floor, step, carpet ── */}
-      <rect x={-EXT} y={ground} width={STAGE_W + EXT * 2} height={EXT} fill="url(#kg-floor)" />
-      <ellipse cx={390} cy={ground + 40} rx={190} ry={34} fill="url(#kg-warm)" opacity={0.28} />
-      <ellipse cx={1210} cy={ground + 40} rx={190} ry={34} fill="url(#kg-warm)" opacity={0.28} />
-      <polygon points={`640,${ground + 14} 960,${ground + 14} 2052,2600 -452,2600`} fill="url(#kg-carpet)" />
-      <line x1={654} y1={ground + 14} x2={-420} y2={2600} stroke="#e9b53a" strokeWidth={5} />
-      <line x1={946} y1={ground + 14} x2={2020} y2={2600} stroke="#e9b53a" strokeWidth={5} />
-      <line x1={668} y1={ground + 14} x2={-388} y2={2600} stroke="#e9b53a" strokeWidth={2} opacity={0.7} />
-      <line x1={932} y1={ground + 14} x2={1988} y2={2600} stroke="#e9b53a" strokeWidth={2} opacity={0.7} />
-      <polygon
-        ref={floorLightRef}
-        points={`${doorL},${ground} ${doorR},${ground} 1480,${ground + 520} 120,${ground + 520}`}
-        fill="url(#kg-spill)"
-        opacity={0}
-      />
-      <rect x={604} y={ground} width={392} height={14} fill="url(#kg-marble)" />
-      <rect x={604} y={ground + 14} width={392} height={4} fill="#8c7d63" />
-    </svg>
-  )
-}
-
+// ─────────────────────────────────────────────────────────────
+// Parlour interior (1600 × 1000 units): cream marble, teal arches
+// and gold, matching the store seen through the windows.
+// ─────────────────────────────────────────────────────────────
 function rotate<T>(list: T[], by: number): T[] {
   if (list.length === 0) return list
   const n = by % list.length
@@ -1113,198 +1054,170 @@ function Product({
   const w = height * ratio
   return (
     <g transform={deg ? `rotate(${deg} ${cx} ${bottom})` : undefined}>
-      {shadow && <ellipse cx={cx} cy={bottom - 2} rx={w * 0.46} ry={Math.max(3, w * 0.07)} fill="#000" opacity={0.28} />}
+      {shadow && <ellipse cx={cx} cy={bottom - 2} rx={w * 0.46} ry={Math.max(3, w * 0.07)} fill="#3b2a10" opacity={0.25} />}
       <image href={src} x={cx - w / 2} y={bottom - height} width={w} height={height} preserveAspectRatio="xMidYMax meet" />
     </g>
   )
 }
 
-function ShopWindow({ x, tubs, bars }: { x: number; tubs: string[]; bars: string[] }) {
-  const w = 280
-  const spring = 580
-  const bottom = 770
-  const arch = `M${x} ${bottom} V${spring} A${w / 2} ${w / 2} 0 0 1 ${x + w} ${spring} V${bottom} Z`
-  const tubH = 82
-  const barH = 82
-  const barRow = Array.from({ length: 5 }, (_, i) => bars[i % Math.max(1, bars.length)]).filter(Boolean)
-  return (
-    <g>
-      <ellipse cx={x + w / 2} cy={620} rx={230} ry={220} fill="url(#kg-warm)" opacity={0.35} />
-      <path d={arch} fill="url(#kg-window)" />
-      {/* King sunrise in the fanlight */}
-      <g transform={`translate(${x + w / 2} ${spring - 4})`} opacity={0.9}>
-        {Array.from({ length: 9 }, (_, i) => {
-          const a = Math.PI + (Math.PI * (i + 0.5)) / 9
-          return (
-            <line
-              key={i}
-              x1={Math.cos(a) * 46}
-              y1={Math.sin(a) * 46}
-              x2={Math.cos(a) * 82}
-              y2={Math.sin(a) * 82}
-              stroke="#e39a00"
-              strokeWidth={6}
-              strokeLinecap="round"
-            />
-          )
-        })}
-        <path d="M-34 0 A34 34 0 0 1 34 0" fill="none" stroke="#e39a00" strokeWidth={7} />
-        <path d="M-18 0 A18 18 0 0 1 18 0" fill="none" stroke="#e39a00" strokeWidth={6} />
-      </g>
-      {/* display shelves: tubs on top, bars below */}
-      {tubs.map((src, i) => (
-        <Product key={`t${i}`} src={src} cx={x + 50 + i * 90} bottom={672} height={tubH} ratio={TUB_RATIO} shadow={false} />
-      ))}
-      <rect x={x} y={670} width={w} height={5} fill="url(#kg-gold)" />
-      {barRow.map((src, i) => (
-        <Product key={`b${i}`} src={src} cx={x + 38 + i * 51} bottom={764} height={barH} ratio={BAR_RATIO} shadow={false} />
-      ))}
-      <rect x={x} y={762} width={w} height={5} fill="url(#kg-gold)" />
-      {/* glazing */}
-      <line x1={x} y1={spring} x2={x + w} y2={spring} stroke="url(#kg-gold-h)" strokeWidth={5} />
-      <path d={arch} fill="url(#kg-glass-shine)" />
-      <path d={arch} fill="none" stroke="url(#kg-gold)" strokeWidth={10} />
-      <path d={arch} fill="none" stroke="#001e29" strokeWidth={2} opacity={0.6} />
-      {/* sill + bulkhead */}
-      <rect x={x - 12} y={bottom} width={w + 24} height={14} fill="url(#kg-gold)" />
-      <rect x={x} y={bottom + 14} width={w} height={96} fill="#003d51" />
-      <rect x={x + 16} y={bottom + 28} width={w - 32} height={68} fill="none" stroke="#d6a12a" strokeWidth={2.5} opacity={0.85} />
-    </g>
-  )
+function arch(x0: number, x1: number, top: number, bottom: number) {
+  const r = (x1 - x0) / 2
+  return `M${x0} ${bottom} V${top + r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${bottom} Z`
 }
 
-// ─────────────────────────────────────────────────────────────
-// Parlour interior (1600 × 1000 units)
-// ─────────────────────────────────────────────────────────────
 function Parlour({ products }: { products: KingHeroProducts }) {
-  const wave = "M-800 770 C -600 700, -400 820, -200 760 S 200 700, 400 770 S 800 840, 1000 760 S 1400 690, 1600 770 S 2000 830, 2400 760 L 2400 2200 L -800 2200 Z"
-  const stripe = "M-800 830 C -600 770, -400 880, -200 822 S 200 770, 400 834 S 800 900, 1000 824 S 1400 760, 1600 834 S 2000 890, 2400 824"
   const { tubs, bars } = products
+  const center = arch(590, 1010, 380, 790)
+  const left = arch(170, 470, 400, 790)
+  const right = arch(1130, 1430, 400, 790)
   return (
     <svg viewBox={`0 0 ${INT_W} ${INT_H}`} width={INT_W} height={INT_H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
       <defs>
-        <radialGradient id="ki-wall" cx="800" cy="430" r="1100" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffdb6e" />
-          <stop offset="0.45" stopColor={YELLOW} />
-          <stop offset="1" stopColor="#d98e00" />
+        <radialGradient id="ki-wall" cx="800" cy="420" r="1100" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#fffaf1" />
+          <stop offset="0.5" stopColor="#f3eadb" />
+          <stop offset="1" stopColor="#ddcdb3" />
         </radialGradient>
-        <linearGradient id="ki-niche" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff0bd" />
-          <stop offset="1" stopColor="#ffc93d" />
+        <linearGradient id="ki-teal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#127c8f" />
+          <stop offset="1" stopColor="#06495a" />
         </linearGradient>
-        <linearGradient id="ki-cabinet" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffe9a6" />
-          <stop offset="1" stopColor="#f7bb2a" />
+        <linearGradient id="ki-niche" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#efe4d1" />
+          <stop offset="1" stopColor="#e2d3ba" />
+        </linearGradient>
+        <linearGradient id="ki-marble" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#ddd5c8" />
         </linearGradient>
         <radialGradient id="ki-glow">
-          <stop offset="0" stopColor="#fff6d6" stopOpacity="0.95" />
-          <stop offset="0.5" stopColor="#ffe08a" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#ffe08a" stopOpacity="0" />
+          <stop offset="0" stopColor="#fff6dc" stopOpacity="0.95" />
+          <stop offset="0.5" stopColor="#ffe3a6" stopOpacity="0.35" />
+          <stop offset="1" stopColor="#ffe3a6" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="ki-gold" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#fff1b8" />
-          <stop offset="0.35" stopColor="#f9c846" />
-          <stop offset="0.7" stopColor="#c98a00" />
-          <stop offset="1" stopColor="#f7cf5a" />
+          <stop offset="0.35" stopColor="#e9bd55" />
+          <stop offset="0.7" stopColor="#b98314" />
+          <stop offset="1" stopColor="#f0cd73" />
+        </linearGradient>
+        <linearGradient id="ki-cove" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffd98f" stopOpacity="0.7" />
+          <stop offset="1" stopColor="#ffd98f" stopOpacity="0" />
         </linearGradient>
         <filter id="ki-shadow" x="-30%" y="-20%" width="160%" height="150%">
-          <feDropShadow dx="0" dy="16" stdDeviation="14" floodColor="#6b3d00" floodOpacity="0.4" />
+          <feDropShadow dx="0" dy="14" stdDeviation="12" floodColor="#00242f" floodOpacity="0.45" />
         </filter>
       </defs>
 
-      {/* back wall */}
+      {/* back wall with soft marble veining */}
       <rect x={-1200} y={-1200} width={INT_W + 2400} height={INT_H + 2400} fill="url(#ki-wall)" />
-      <rect x={-1200} y={92} width={INT_W + 2400} height={6} fill="#d48c00" opacity={0.5} />
+      {MARBLE_VEINS.map((d, i) => (
+        <path key={i} d={d} fill="none" stroke="#cbb994" strokeWidth={i % 2 ? 1.2 : 2.2} opacity={0.35} />
+      ))}
 
-      {/* display cabinets: tubs on the left, bars on the right */}
-      {[70, 1190].map((x, side) => (
-        <g key={x}>
-          <rect x={x} y={250} width={340} height={460} rx={16} fill="url(#ki-cabinet)" />
-          <rect x={x} y={250} width={340} height={460} rx={16} fill="none" stroke="url(#ki-gold)" strokeWidth={8} />
-          {[470, 690].map((y, row) => (
-            <g key={y}>
-              {side === 0
-                ? rotate(tubs, row * 2)
-                    .slice(0, 2)
-                    .map((src, i) => <Product key={i} src={src} cx={x + 95 + i * 150} bottom={y} height={150} ratio={TUB_RATIO} />)
-                : rotate(bars, row)
-                    .slice(0, 3)
-                    .map((src, i) => <Product key={i} src={src} cx={x + 70 + i * 100} bottom={y} height={180} ratio={BAR_RATIO} />)}
-              <rect x={x + 6} y={y - 2} width={328} height={10} rx={3} fill="url(#ki-gold)" />
-            </g>
-          ))}
+      {/* ceiling cove with warm light */}
+      <rect x={-1200} y={-1200} width={INT_W + 2400} height={1270} fill="#efe5d4" />
+      <rect x={-1200} y={66} width={INT_W + 2400} height={6} fill="url(#ki-gold)" />
+      <rect x={-1200} y={72} width={INT_W + 2400} height={60} fill="url(#ki-cove)" />
+
+      {/* side arches with shelves: tubs left, bars right */}
+      {[left, right].map((d, side) => (
+        <g key={side}>
+          <path d={d} fill="url(#ki-niche)" />
+          <path d={d} fill="none" stroke="#c7b28c" strokeWidth={14} opacity={0.35} transform="translate(0 4)" />
+          {[615, 772].map((y, row) => {
+            const x0 = side === 0 ? 170 : 1130
+            return (
+              <g key={y}>
+                {side === 0
+                  ? rotate(tubs, row * 2)
+                      .slice(0, 2)
+                      .map((src, i) => <Product key={i} src={src} cx={x0 + 88 + i * 124} bottom={y} height={122} ratio={TUB_RATIO} />)
+                  : rotate(bars, row)
+                      .slice(0, 3)
+                      .map((src, i) => <Product key={i} src={src} cx={x0 + 70 + i * 80} bottom={y} height={142} ratio={BAR_RATIO} />)}
+                <rect x={x0 + 8} y={y - 1} width={284} height={7} rx={2} fill="url(#ki-gold)" />
+              </g>
+            )
+          })}
+          <path d={d} fill="none" stroke="url(#ki-gold)" strokeWidth={7} />
         </g>
       ))}
 
-      {/* arched display niche */}
-      <path d="M548 780 V400 A252 252 0 0 1 1052 400 V780 Z" fill="#c98000" opacity={0.35} transform="translate(0 10)" />
-      <path d="M548 780 V400 A252 252 0 0 1 1052 400 V780 Z" fill="url(#ki-niche)" />
-      <path d="M548 780 V400 A252 252 0 0 1 1052 400 V780 Z" fill="none" stroke="url(#ki-gold)" strokeWidth={10} />
-      <ellipse cx={800} cy={420} rx={260} ry={240} fill="url(#ki-glow)" opacity={0.8} />
-
-      {/* pendant lamps */}
-      {[320, 1280].map((x) => (
+      {/* wall sconces between the arches */}
+      {[530, 1070].map((x) => (
         <g key={x}>
-          <line x1={x} y1={-1200} x2={x} y2={150} stroke="#6b4500" strokeWidth={3} />
-          <ellipse cx={x} cy={250} rx={170} ry={150} fill="url(#ki-glow)" opacity={0.85} />
-          <path d={`M${x - 62} 210 A62 60 0 0 1 ${x + 62} 210 Z`} fill="url(#ki-gold)" />
-          <rect x={x - 66} y={206} width={132} height={8} rx={4} fill="#b77a00" />
-          <ellipse cx={x} cy={216} rx={34} ry={9} fill="#fffbe8" />
+          <ellipse cx={x} cy={470} rx={110} ry={120} fill="url(#ki-glow)" opacity={0.75} className="king-hero-flicker-svg" />
+          <rect x={x - 5} y={492} width={10} height={36} rx={4} fill="url(#ki-gold)" />
+          <path d={`M${x - 16} 440 L${x + 16} 440 L${x + 12} 492 L${x - 12} 492 Z`} fill="#fff4d6" stroke="url(#ki-gold)" strokeWidth={3} />
+          <circle cx={x} cy={466} r={6} fill="#fffbe8" />
         </g>
       ))}
 
-      {/* hero products on a milk splash */}
-      <g className="king-hero-float" style={{ transformOrigin: "800px 600px" }}>
-        <path
-          d="M540 680 C 570 610, 620 650, 650 580 C 670 630, 700 620, 730 550 C 750 600, 780 595, 800 530 C 820 595, 850 600, 870 550 C 900 620, 930 630, 950 580 C 980 650, 1030 610, 1060 680 C 1020 730, 580 730, 540 680 Z"
-          fill="#fffdf6"
-          opacity={0.95}
-        />
-        {[
-          [650, 550, 8],
-          [732, 512, 6],
-          [872, 512, 7],
-          [952, 546, 6],
-          [800, 494, 5],
-        ].map(([x, y, r]) => (
-          <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fffdf6" />
-        ))}
+      {/* centre arch: the hero display */}
+      <path d={center} fill="url(#ki-teal)" />
+      <ellipse cx={800} cy={520} rx={200} ry={210} fill="url(#ki-glow)" opacity={0.35} />
+      <g className="king-hero-float" style={{ transformOrigin: "800px 700px" }}>
         <g filter="url(#ki-shadow)">
-          <Product src={products.heroLeft} cx={640} bottom={712} height={300} ratio={BAR_RATIO} rotate={-12} shadow={false} />
-          <Product src={products.heroRight} cx={960} bottom={712} height={300} ratio={BAR_RATIO} rotate={12} shadow={false} />
-          <Product src={products.hero} cx={800} bottom={745} height={280} ratio={TUB_RATIO} shadow={false} />
+          <Product src={products.heroLeft} cx={688} bottom={748} height={250} ratio={BAR_RATIO} rotate={-10} shadow={false} />
+          <Product src={products.heroRight} cx={912} bottom={748} height={250} ratio={BAR_RATIO} rotate={10} shadow={false} />
+          <Product src={products.hero} cx={800} bottom={758} height={230} ratio={TUB_RATIO} shadow={false} />
         </g>
       </g>
+      {/* marble plinth */}
+      <rect x={636} y={752} width={328} height={38} rx={4} fill="url(#ki-marble)" />
+      <rect x={636} y={752} width={328} height={4} fill="url(#ki-gold)" />
+      <path d={center} fill="none" stroke="url(#ki-gold)" strokeWidth={9} />
 
       {/* sparkles */}
       {SPARKLES.map(([x, y, r, d], i) => (
-        <circle key={i} cx={x} cy={y} r={r} fill="#fff7d1" className="king-hero-twinkle" style={{ animationDelay: `${d}s` }} />
+        <circle key={i} cx={x} cy={y} r={r} fill="#f3d27a" className="king-hero-twinkle" style={{ animationDelay: `${d}s` }} />
       ))}
 
-      {/* brand wave counter */}
-      <path d={wave} fill={BLUE} />
-      <path d={stripe} fill="none" stroke={YELLOW} strokeWidth={12} />
-      <path d={stripe} fill="none" stroke="#ffd56b" strokeWidth={2} transform="translate(0 -5)" opacity={0.7} />
-      {[
-        [140, 735, 13],
-        [205, 712, 8],
-        [1500, 742, 12],
-        [1450, 715, 7],
-      ].map(([x, y, r]) => (
-        <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill={BLUE} />
+      {/* counter: marble top, teal front with gold-framed panels */}
+      <rect x={-1200} y={790} width={INT_W + 2400} height={28} fill="url(#ki-marble)" />
+      <rect x={-1200} y={816} width={INT_W + 2400} height={5} fill="url(#ki-gold)" />
+      <rect x={-1200} y={821} width={INT_W + 2400} height={1400} fill={TEAL} />
+      {Array.from({ length: 12 }, (_, i) => -1000 + i * 320).map((x) => (
+        <rect key={x} x={x + 20} y={848} width={280} height={124} fill="none" stroke="url(#ki-gold)" strokeWidth={3} opacity={0.45} />
       ))}
     </svg>
   )
 }
 
+const MARBLE_VEINS = [
+  "M-200 180 C 60 140, 140 260, 360 220 S 620 120, 760 200",
+  "M820 150 C 960 210, 1080 120, 1240 190 S 1520 260, 1800 170",
+  "M-100 330 C 40 380, 90 300, 160 360",
+  "M1440 300 C 1500 360, 1560 330, 1700 400",
+  "M480 300 C 520 330, 540 380, 520 420",
+  "M1090 250 C 1060 300, 1100 330, 1080 380",
+]
+
 const SPARKLES: [number, number, number, number][] = [
-  [470, 200, 3, 0],
-  [1120, 190, 2.5, 0.8],
-  [600, 160, 2, 1.6],
-  [1030, 470, 3, 0.4],
-  [570, 470, 2, 2.1],
+  [470, 230, 2.5, 0],
+  [1130, 220, 2.5, 0.8],
+  [640, 170, 2, 1.6],
+  [960, 330, 2.5, 0.4],
   [760, 120, 2, 2.6],
-  [880, 210, 3, 1.9],
+  [880, 200, 2.5, 1.9],
+]
+
+// Petals start near the bougainvillea on both sides of the scene.
+const PETALS = [
+  { x: 4, size: 12, color: "#d6247f", dur: 13, delay: -2, drift: 14 },
+  { x: 10, size: 10, color: "#ef5aa8", dur: 16, delay: -9, drift: 10 },
+  { x: 16, size: 9, color: "#f28a2e", dur: 12, delay: -5, drift: 16 },
+  { x: 22, size: 11, color: "#b5179e", dur: 15, delay: -12, drift: 8 },
+  { x: 7, size: 8, color: "#ff7ab8", dur: 18, delay: -15, drift: 18 },
+  { x: 28, size: 9, color: "#e04f97", dur: 14, delay: -7, drift: 12 },
+  { x: 72, size: 10, color: "#f07c22", dur: 14, delay: -3, drift: -12 },
+  { x: 78, size: 12, color: "#d6247f", dur: 17, delay: -10, drift: -16 },
+  { x: 84, size: 9, color: "#ff8fc2", dur: 12, delay: -6, drift: -9 },
+  { x: 90, size: 11, color: "#c2188a", dur: 15, delay: -13, drift: -14 },
+  { x: 95, size: 8, color: "#f59a3d", dur: 19, delay: -1, drift: -18 },
+  { x: 66, size: 9, color: "#e85aa6", dur: 16, delay: -11, drift: -10 },
 ]
 
 const KEYFRAMES = `
@@ -1314,7 +1227,7 @@ const KEYFRAMES = `
 }
 @keyframes king-hero-float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
 @keyframes king-hero-twinkle {
   0%, 100% { opacity: 0.15; }
@@ -1324,6 +1237,33 @@ const KEYFRAMES = `
   0% { box-shadow: 0 0 0 0 rgba(250,176,1,0.55); }
   100% { box-shadow: 0 0 0 16px rgba(250,176,1,0); }
 }
+@keyframes king-hero-flicker {
+  0%, 100% { opacity: 0.85; } 22% { opacity: 1; } 40% { opacity: 0.78; } 63% { opacity: 0.95; } 80% { opacity: 0.82; }
+}
+@keyframes king-hero-fall {
+  0% { transform: translate3d(0, -6vh, 0); opacity: 0; }
+  8% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate3d(var(--drift), 106vh, 0); opacity: 0; }
+}
+@keyframes king-hero-tumble {
+  0% { transform: translateX(0) rotate(0deg) rotateX(0deg); }
+  25% { transform: translateX(14px) rotate(80deg) rotateX(60deg); }
+  50% { transform: translateX(0) rotate(170deg) rotateX(0deg); }
+  75% { transform: translateX(-14px) rotate(260deg) rotateX(60deg); }
+  100% { transform: translateX(0) rotate(360deg) rotateX(0deg); }
+}
+.king-hero-petal {
+  position: absolute; top: 0; display: block;
+  animation-name: king-hero-fall; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+.king-hero-petal > span {
+  display: block; border-radius: 70% 0 70% 0; opacity: 0.92;
+  box-shadow: inset -2px -2px 4px rgba(0,0,0,0.15);
+  animation: king-hero-tumble 4s ease-in-out infinite;
+}
+.king-hero-flicker { animation: king-hero-flicker 3.2s ease-in-out infinite; }
+.king-hero-flicker-svg { animation: king-hero-flicker 3.6s ease-in-out infinite; }
 .king-hero-hint-ring {
   display: inline-flex; align-items: center; justify-content: center;
   width: 46px; height: 46px; border-radius: 999px; color: ${YELLOW};
@@ -1342,7 +1282,7 @@ const KEYFRAMES = `
 .king-hero-btn:hover { transform: translateY(-2px); }
 .king-hero-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 .king-hero-btn--primary {
-  background: ${GOLD_CSS}; color: ${BLUE_DEEP};
+  background: ${GOLD_CSS}; color: ${TEAL_DEEP};
   box-shadow: 0 10px 30px rgba(0,40,55,0.35), inset 0 1px 0 rgba(255,255,255,0.6);
 }
 .king-hero-btn--primary:hover { box-shadow: 0 14px 36px rgba(0,40,55,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
@@ -1354,7 +1294,7 @@ const KEYFRAMES = `
 .king-hero-skip {
   position: absolute; right: clamp(12px, 2.5vw, 24px); bottom: clamp(14px, 2.4vw, 22px); z-index: 3;
   font-family: ${SANS}; font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
-  color: rgba(255,246,227,0.75); background: rgba(0,30,42,0.35); border: 1px solid rgba(255,241,184,0.35);
+  color: rgba(255,246,227,0.85); background: rgba(0,30,42,0.4); border: 1px solid rgba(255,241,184,0.4);
   border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: opacity .4s ease, color .2s ease;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
@@ -1363,6 +1303,7 @@ const KEYFRAMES = `
   .king-hero-btn { height: 46px; padding: 0 18px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .king-hero-float, .king-hero-twinkle, .king-hero-hint-ring { animation: none; }
+  .king-hero-float, .king-hero-twinkle, .king-hero-hint-ring, .king-hero-flicker, .king-hero-flicker-svg { animation: none; }
+  .king-hero-petal { display: none; }
 }
 `
