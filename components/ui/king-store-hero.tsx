@@ -37,8 +37,10 @@ export interface KingStoreHeroProps {
   subheadline?: string
   primaryCta?: { label: string; href: string } | false
   secondaryCta?: { label: string; href: string } | false
-  /** Text on the gold band of the awning. */
+  /** Text on the gold band of the awning (the brand tagline). */
   awningText?: string
+  /** Product photos (transparent PNG/WebP) used in the windows and the parlour. */
+  products?: Partial<KingHeroProducts>
   /** Total input distance (px) needed to scrub the full scene. */
   scrubDistance?: number
   /** Show a small "Skip intro" button while the intro is playing. */
@@ -46,6 +48,38 @@ export interface KingStoreHeroProps {
   className?: string
   style?: React.CSSProperties
 }
+
+export interface KingHeroProducts {
+  /** Front and centre inside the parlour (a tub works best). */
+  hero: string
+  /** Bars standing either side of the hero. */
+  heroLeft: string
+  heroRight: string
+  /** Tubs and bars for the shop windows and the parlour shelves. */
+  tubs: string[]
+  bars: string[]
+}
+
+export const DEFAULT_PRODUCTS: KingHeroProducts = {
+  hero: "/products/tub-chocolate-hazelnut.webp",
+  heroLeft: "/products/bar-majesto-belgian-chocolate.webp",
+  heroRight: "/products/bar-triple-crown-coffee.webp",
+  tubs: [
+    "/products/tub-tender-coconut.webp",
+    "/products/tub-jack-fruit.webp",
+    "/products/tub-chocolate-brownie.webp",
+    "/products/tub-chocolate-hazelnut.webp",
+  ],
+  bars: [
+    "/products/bar-majesto-french-vanilla.webp",
+    "/products/bar-majesto-belgian-chocolate.webp",
+    "/products/bar-triple-crown-coffee.webp",
+  ],
+}
+
+// Natural aspect ratios (width / height) of the product cut-outs
+const TUB_RATIO = 0.87
+const BAR_RATIO = 0.42
 
 // Brand palette (sampled from the King Ice Cream artwork)
 const BLUE = "#007191"
@@ -81,13 +115,14 @@ const range = (p: number, start: number, end: number) => clamp((p - start) / (en
 export default function KingStoreHero({
   logoSrc = "/brand/king-logo.png",
   title = "A Royal Welcome Awaits",
-  scrollHint = "Scroll to step inside",
+  scrollHint = "Scroll",
   eyebrow = "Welcome to the Kingdom",
   headline = "Every Scoop, A Royal Treat",
   subheadline = "Handcrafted ice creams made with the goodness of milk.",
   primaryCta = { label: "Explore Flavours", href: "#flavours" },
   secondaryCta = { label: "Find a Store", href: "#stores" },
-  awningText = "KING ICE CREAM  ·  PREMIUM PARLOUR",
+  awningText = "THE TASTE OF ROYALTY",
+  products,
   scrubDistance = 2600,
   showSkip = true,
   className,
@@ -108,6 +143,7 @@ export default function KingStoreHero({
   const skipRef = useRef<HTMLButtonElement>(null)
   const progressBarRef = useRef<HTMLDivElement>(null)
   const skipHandlerRef = useRef<() => void>(() => {})
+  const items: KingHeroProducts = { ...DEFAULT_PRODUCTS, ...products }
 
   useEffect(() => {
     const section = sectionRef.current
@@ -434,7 +470,7 @@ export default function KingStoreHero({
           pointerEvents: "none",
         }}
       >
-        <Parlour />
+        <Parlour products={items} />
       </div>
 
       {/* ── Storefront ── */}
@@ -451,7 +487,7 @@ export default function KingStoreHero({
           pointerEvents: "none",
         }}
       >
-        <Storefront logoSrc={logoSrc} awningText={awningText} floorLightRef={floorLightRef} />
+        <Storefront logoSrc={logoSrc} awningText={awningText} products={items} floorLightRef={floorLightRef} />
 
         {/* Glass doors (3D) */}
         <div
@@ -517,7 +553,7 @@ export default function KingStoreHero({
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: "calc(clamp(20px, 5vh, 44px) + 46px)",
+          bottom: "calc(clamp(16px, 3.5vh, 32px) + 90px)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -532,7 +568,7 @@ export default function KingStoreHero({
             margin: 0,
             fontFamily: SERIF,
             fontWeight: 700,
-            fontSize: "clamp(28px, 4.6vw, 60px)",
+            fontSize: "clamp(28px, 3.4vw, 48px)",
             lineHeight: 1.05,
             letterSpacing: "-0.01em",
             color: CREAM,
@@ -549,25 +585,34 @@ export default function KingStoreHero({
         style={{
           position: "absolute",
           left: "50%",
-          bottom: "clamp(20px, 5vh, 44px)",
+          bottom: "clamp(16px, 3.5vh, 32px)",
           transform: "translateX(-50%)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 6,
-          color: "rgba(255,246,227,0.8)",
-          fontFamily: SANS,
-          fontSize: "clamp(10px, 1.2vw, 11px)",
-          fontWeight: 600,
-          letterSpacing: "0.3em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
+          gap: 10,
           transition: "opacity 0.5s ease",
           pointerEvents: "none",
         }}
       >
-        <span>{scrollHint}</span>
-        <ChevronDown size={18} strokeWidth={1.6} style={{ color: YELLOW, animation: "king-hero-bounce 1.6s ease-in-out infinite" }} />
+        <span
+          style={{
+            fontFamily: SANS,
+            fontSize: "clamp(12px, 1.3vw, 14px)",
+            fontWeight: 700,
+            letterSpacing: "0.42em",
+            marginRight: "-0.42em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+            color: CREAM,
+            textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+          }}
+        >
+          {scrollHint}
+        </span>
+        <span className="king-hero-hint-ring">
+          <ChevronDown size={22} strokeWidth={2.4} style={{ animation: "king-hero-bounce 1.6s ease-in-out infinite" }} />
+        </span>
       </div>
 
       {/* ── Finale copy (inside the parlour) ── */}
@@ -719,39 +764,6 @@ function GlassDoor({
           overflow: "hidden",
         }}
       >
-        {/* etched crown */}
-        <svg viewBox="0 0 60 40" width={58} height={38} style={{ position: "absolute", left: "50%", top: "17%", transform: "translateX(-50%)", opacity: 0.9 }}>
-          <path
-            d="M6 32 L4 10 L17 21 L30 4 L43 21 L56 10 L54 32 Z"
-            fill="none"
-            stroke="#f7cf5a"
-            strokeWidth={2.2}
-            strokeLinejoin="round"
-          />
-          <line x1={7} y1={37} x2={53} y2={37} stroke="#f7cf5a" strokeWidth={2.2} strokeLinecap="round" />
-          <circle cx={30} cy={4} r={2.6} fill="#f7cf5a" />
-          <circle cx={4} cy={10} r={2.2} fill="#f7cf5a" />
-          <circle cx={56} cy={10} r={2.2} fill="#f7cf5a" />
-        </svg>
-        {!isLeft && (
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              top: "33%",
-              textAlign: "center",
-              fontFamily: SERIF,
-              fontStyle: "italic",
-              fontWeight: 600,
-              fontSize: 15,
-              letterSpacing: "0.12em",
-              color: "rgba(247,207,90,0.9)",
-            }}
-          >
-            King
-          </div>
-        )}
 
         {/* mid rail */}
         <div style={{ position: "absolute", left: 0, right: 0, top: "62%", height: 7, background: GOLD_CSS }} />
@@ -836,10 +848,12 @@ function scallopPath(x0: number, x1: number, y: number, r: number) {
 function Storefront({
   logoSrc,
   awningText,
+  products,
   floorLightRef,
 }: {
   logoSrc: string
   awningText: string
+  products: KingHeroProducts
   floorLightRef: React.RefObject<SVGPolygonElement | null>
 }) {
   const doorL = DOOR.x
@@ -928,25 +942,6 @@ function Storefront({
           <feDropShadow dx="0" dy="10" stdDeviation="10" floodColor="#000" floodOpacity="0.45" />
         </filter>
 
-        <symbol id="kg-mini-cone" viewBox="0 0 40 70">
-          <path d="M8 30 L32 30 L20 68 Z" fill="#c98a45" />
-          <path d="M11 36 L29 36 M13 44 L27 44 M15 52 L25 52" stroke="#9c6229" strokeWidth="1.5" />
-          <circle cx="20" cy="22" r="13" fill="#fff4dc" />
-          <path d="M9 22 Q14 30 20 24 Q26 30 31 22" fill="#5a2a12" />
-          <circle cx="20" cy="10" r="4" fill="#e04a5f" />
-        </symbol>
-        <symbol id="kg-mini-pop" viewBox="0 0 30 70">
-          <rect x="3" y="2" width="24" height="46" rx="11" fill="#f7941d" />
-          <rect x="6" y="6" width="5" height="34" rx="2.5" fill="#ffd08a" opacity="0.7" />
-          <rect x="12" y="46" width="6" height="22" rx="3" fill="#e9c58c" />
-        </symbol>
-        <symbol id="kg-mini-bar" viewBox="0 0 30 70">
-          <rect x="3" y="2" width="24" height="46" rx="9" fill="#4a2410" />
-          <circle cx="10" cy="14" r="2" fill="#d9a066" />
-          <circle cx="19" cy="24" r="2" fill="#d9a066" />
-          <circle cx="11" cy="34" r="2" fill="#d9a066" />
-          <rect x="12" y="46" width="6" height="22" rx="3" fill="#e9c58c" />
-        </symbol>
       </defs>
 
       {/* ── Wall with doorway cut-out ── */}
@@ -986,7 +981,7 @@ function Storefront({
 
       {/* ── Windows ── */}
       {[250, 1070].map((x, i) => (
-        <ShopWindow key={x} x={x} label={i === 0 ? "Handcrafted" : "Made with Milk"} />
+        <ShopWindow key={x} x={x} tubs={rotate(products.tubs, i * 2).slice(0, 3)} bars={rotate(products.bars, i)} />
       ))}
 
       {/* ── Awning ── */}
@@ -1091,35 +1086,85 @@ function Storefront({
   )
 }
 
-function ShopWindow({ x, label }: { x: number; label: string }) {
+function rotate<T>(list: T[], by: number): T[] {
+  if (list.length === 0) return list
+  const n = by % list.length
+  return list.slice(n).concat(list.slice(0, n))
+}
+
+/** A product photo standing on a baseline (x = centre, y = bottom). */
+function Product({
+  src,
+  cx,
+  bottom,
+  height,
+  ratio,
+  rotate: deg = 0,
+  shadow = true,
+}: {
+  src: string
+  cx: number
+  bottom: number
+  height: number
+  ratio: number
+  rotate?: number
+  shadow?: boolean
+}) {
+  const w = height * ratio
+  return (
+    <g transform={deg ? `rotate(${deg} ${cx} ${bottom})` : undefined}>
+      {shadow && <ellipse cx={cx} cy={bottom - 2} rx={w * 0.46} ry={Math.max(3, w * 0.07)} fill="#000" opacity={0.28} />}
+      <image href={src} x={cx - w / 2} y={bottom - height} width={w} height={height} preserveAspectRatio="xMidYMax meet" />
+    </g>
+  )
+}
+
+function ShopWindow({ x, tubs, bars }: { x: number; tubs: string[]; bars: string[] }) {
   const w = 280
-  const top = 440
   const spring = 580
   const bottom = 770
   const arch = `M${x} ${bottom} V${spring} A${w / 2} ${w / 2} 0 0 1 ${x + w} ${spring} V${bottom} Z`
-  const items = ["kg-mini-cone", "kg-mini-pop", "kg-mini-bar", "kg-mini-cone", "kg-mini-pop", "kg-mini-bar"]
+  const tubH = 82
+  const barH = 82
+  const barRow = Array.from({ length: 5 }, (_, i) => bars[i % Math.max(1, bars.length)]).filter(Boolean)
   return (
     <g>
       <ellipse cx={x + w / 2} cy={620} rx={230} ry={220} fill="url(#kg-warm)" opacity={0.35} />
       <path d={arch} fill="url(#kg-window)" />
-      {/* display shelves */}
-      {[690, 755].map((y, row) => (
-        <g key={y}>
-          {items.slice(row * 3, row * 3 + 3).concat(items.slice(row * 3, row * 3 + 2)).map((id, i) => (
-            <use key={i} href={`#${id}`} x={x + 22 + i * 50} y={y - 62} width={id === "kg-mini-cone" ? 34 : 26} height={60} />
-          ))}
-          <rect x={x} y={y - 2} width={w} height={5} fill="url(#kg-gold)" />
-        </g>
+      {/* King sunrise in the fanlight */}
+      <g transform={`translate(${x + w / 2} ${spring - 4})`} opacity={0.9}>
+        {Array.from({ length: 9 }, (_, i) => {
+          const a = Math.PI + (Math.PI * (i + 0.5)) / 9
+          return (
+            <line
+              key={i}
+              x1={Math.cos(a) * 46}
+              y1={Math.sin(a) * 46}
+              x2={Math.cos(a) * 82}
+              y2={Math.sin(a) * 82}
+              stroke="#e39a00"
+              strokeWidth={6}
+              strokeLinecap="round"
+            />
+          )
+        })}
+        <path d="M-34 0 A34 34 0 0 1 34 0" fill="none" stroke="#e39a00" strokeWidth={7} />
+        <path d="M-18 0 A18 18 0 0 1 18 0" fill="none" stroke="#e39a00" strokeWidth={6} />
+      </g>
+      {/* display shelves: tubs on top, bars below */}
+      {tubs.map((src, i) => (
+        <Product key={`t${i}`} src={src} cx={x + 50 + i * 90} bottom={672} height={tubH} ratio={TUB_RATIO} shadow={false} />
       ))}
-      <text x={x + w / 2} y={560} textAnchor="middle" fontFamily={SERIF} fontStyle="italic" fontWeight={600} fontSize={26} fill="#a86a00">
-        {label}
-      </text>
-      {/* glazing bars */}
+      <rect x={x} y={670} width={w} height={5} fill="url(#kg-gold)" />
+      {barRow.map((src, i) => (
+        <Product key={`b${i}`} src={src} cx={x + 38 + i * 51} bottom={764} height={barH} ratio={BAR_RATIO} shadow={false} />
+      ))}
+      <rect x={x} y={762} width={w} height={5} fill="url(#kg-gold)" />
+      {/* glazing */}
       <line x1={x} y1={spring} x2={x + w} y2={spring} stroke="url(#kg-gold-h)" strokeWidth={5} />
-      <line x1={x + w / 2} y1={spring} x2={x + w / 2} y2={bottom} stroke="url(#kg-gold-h)" strokeWidth={5} />
       <path d={arch} fill="url(#kg-glass-shine)" />
       <path d={arch} fill="none" stroke="url(#kg-gold)" strokeWidth={10} />
-      <path d={arch} fill="none" stroke="#001e29" strokeWidth={2} transform={`translate(0 0)`} opacity={0.6} />
+      <path d={arch} fill="none" stroke="#001e29" strokeWidth={2} opacity={0.6} />
       {/* sill + bulkhead */}
       <rect x={x - 12} y={bottom} width={w + 24} height={14} fill="url(#kg-gold)" />
       <rect x={x} y={bottom + 14} width={w} height={96} fill="#003d51" />
@@ -1131,9 +1176,10 @@ function ShopWindow({ x, label }: { x: number; label: string }) {
 // ─────────────────────────────────────────────────────────────
 // Parlour interior (1600 × 1000 units)
 // ─────────────────────────────────────────────────────────────
-function Parlour() {
+function Parlour({ products }: { products: KingHeroProducts }) {
   const wave = "M-800 770 C -600 700, -400 820, -200 760 S 200 700, 400 770 S 800 840, 1000 760 S 1400 690, 1600 770 S 2000 830, 2400 760 L 2400 2200 L -800 2200 Z"
   const stripe = "M-800 830 C -600 770, -400 880, -200 822 S 200 770, 400 834 S 800 900, 1000 824 S 1400 760, 1600 834 S 2000 890, 2400 824"
+  const { tubs, bars } = products
   return (
     <svg viewBox={`0 0 ${INT_W} ${INT_H}`} width={INT_W} height={INT_H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
       <defs>
@@ -1146,6 +1192,10 @@ function Parlour() {
           <stop offset="0" stopColor="#fff0bd" />
           <stop offset="1" stopColor="#ffc93d" />
         </linearGradient>
+        <linearGradient id="ki-cabinet" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffe9a6" />
+          <stop offset="1" stopColor="#f7bb2a" />
+        </linearGradient>
         <radialGradient id="ki-glow">
           <stop offset="0" stopColor="#fff6d6" stopOpacity="0.95" />
           <stop offset="0.5" stopColor="#ffe08a" stopOpacity="0.35" />
@@ -1157,23 +1207,34 @@ function Parlour() {
           <stop offset="0.7" stopColor="#c98a00" />
           <stop offset="1" stopColor="#f7cf5a" />
         </linearGradient>
-        <path id="ki-seal-top" d="M-55.5 22.5 A60 60 0 1 1 55.5 22.5" />
+        <filter id="ki-shadow" x="-30%" y="-20%" width="160%" height="150%">
+          <feDropShadow dx="0" dy="16" stdDeviation="14" floodColor="#6b3d00" floodOpacity="0.4" />
+        </filter>
       </defs>
 
       {/* back wall */}
       <rect x={-1200} y={-1200} width={INT_W + 2400} height={INT_H + 2400} fill="url(#ki-wall)" />
-      {/* wall panels */}
-      {[
-        [70, 170],
-        [1190, 170],
-      ].map(([x, y]) => (
-        <g key={x} opacity={0.55}>
-          <rect x={x} y={y} width={340} height={520} rx={14} fill="none" stroke="#d48c00" strokeWidth={4} />
-          <rect x={x + 18} y={y + 18} width={304} height={484} rx={8} fill="none" stroke="#ffe08a" strokeWidth={2} />
+      <rect x={-1200} y={92} width={INT_W + 2400} height={6} fill="#d48c00" opacity={0.5} />
+
+      {/* display cabinets: tubs on the left, bars on the right */}
+      {[70, 1190].map((x, side) => (
+        <g key={x}>
+          <rect x={x} y={250} width={340} height={460} rx={16} fill="url(#ki-cabinet)" />
+          <rect x={x} y={250} width={340} height={460} rx={16} fill="none" stroke="url(#ki-gold)" strokeWidth={8} />
+          {[470, 690].map((y, row) => (
+            <g key={y}>
+              {side === 0
+                ? rotate(tubs, row * 2)
+                    .slice(0, 2)
+                    .map((src, i) => <Product key={i} src={src} cx={x + 95 + i * 150} bottom={y} height={150} ratio={TUB_RATIO} />)
+                : rotate(bars, row)
+                    .slice(0, 3)
+                    .map((src, i) => <Product key={i} src={src} cx={x + 70 + i * 100} bottom={y} height={180} ratio={BAR_RATIO} />)}
+              <rect x={x + 6} y={y - 2} width={328} height={10} rx={3} fill="url(#ki-gold)" />
+            </g>
+          ))}
         </g>
       ))}
-      {/* crown frieze */}
-      <rect x={-1200} y={92} width={INT_W + 2400} height={6} fill="#d48c00" opacity={0.5} />
 
       {/* arched display niche */}
       <path d="M548 780 V400 A252 252 0 0 1 1052 400 V780 Z" fill="#c98000" opacity={0.35} transform="translate(0 10)" />
@@ -1192,10 +1253,26 @@ function Parlour() {
         </g>
       ))}
 
-      {/* ice creams on a milk splash */}
-      <g className="king-hero-float" style={{ transformOrigin: "800px 520px" }}>
-        <g transform="translate(500 250)">
-          <IceCreamTrio />
+      {/* hero products on a milk splash */}
+      <g className="king-hero-float" style={{ transformOrigin: "800px 600px" }}>
+        <path
+          d="M540 680 C 570 610, 620 650, 650 580 C 670 630, 700 620, 730 550 C 750 600, 780 595, 800 530 C 820 595, 850 600, 870 550 C 900 620, 930 630, 950 580 C 980 650, 1030 610, 1060 680 C 1020 730, 580 730, 540 680 Z"
+          fill="#fffdf6"
+          opacity={0.95}
+        />
+        {[
+          [650, 550, 8],
+          [732, 512, 6],
+          [872, 512, 7],
+          [952, 546, 6],
+          [800, 494, 5],
+        ].map(([x, y, r]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fffdf6" />
+        ))}
+        <g filter="url(#ki-shadow)">
+          <Product src={products.heroLeft} cx={640} bottom={712} height={300} ratio={BAR_RATIO} rotate={-12} shadow={false} />
+          <Product src={products.heroRight} cx={960} bottom={712} height={300} ratio={BAR_RATIO} rotate={12} shadow={false} />
+          <Product src={products.hero} cx={800} bottom={745} height={280} ratio={TUB_RATIO} shadow={false} />
         </g>
       </g>
 
@@ -1211,175 +1288,24 @@ function Parlour() {
       {[
         [140, 735, 13],
         [205, 712, 8],
-        [960, 735, 10],
         [1500, 742, 12],
         [1450, 715, 7],
       ].map(([x, y, r]) => (
         <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill={BLUE} />
       ))}
-
-      {/* "goodness of milk" seal */}
-      <g transform="translate(1330 650)">
-        <circle r={84} fill="url(#ki-gold)" />
-        <circle r={72} fill={BLUE_DEEP} />
-        <circle r={72} fill="none" stroke="#fff1b8" strokeWidth={2} />
-        <text fontFamily={SANS} fontWeight={800} fontSize={11} letterSpacing={2} fill="#ffd769">
-          <textPath href="#ki-seal-top" startOffset="50%" textAnchor="middle">
-            MADE WITH GOODNESS OF
-          </textPath>
-        </text>
-        <path d="M0 -26 C 10 -12, 18 -2, 18 8 A18 18 0 0 1 -18 8 C -18 -2, -10 -12, 0 -26 Z" fill="#fffdf6" />
-        <text y={52} textAnchor="middle" fontFamily={SERIF} fontWeight={800} fontSize={24} letterSpacing={3} fill="#fff">
-          MILK
-        </text>
-      </g>
     </svg>
   )
 }
 
 const SPARKLES: [number, number, number, number][] = [
-  [470, 300, 3, 0],
-  [1120, 260, 2.5, 0.8],
+  [470, 200, 3, 0],
+  [1120, 190, 2.5, 0.8],
   [600, 160, 2, 1.6],
-  [1010, 520, 3, 0.4],
-  [430, 560, 2, 2.1],
-  [1180, 600, 2.5, 1.2],
+  [1030, 470, 3, 0.4],
+  [570, 470, 2, 2.1],
   [760, 120, 2, 2.6],
   [880, 210, 3, 1.9],
 ]
-
-function IceCreamTrio() {
-  // Drawn in a 600 × 520 box: orange popsicle, chocolate cone, choco-nut bar.
-  const nuts: [number, number, number][] = [
-    [-30, -80, 5],
-    [12, -60, 4],
-    [-14, -30, 6],
-    [26, -10, 4],
-    [-34, 6, 5],
-    [8, 26, 6],
-    [-20, 50, 4],
-    [30, 54, 5],
-    [-6, 80, 5],
-    [22, -96, 4],
-  ]
-  return (
-    <g>
-      <defs>
-        <linearGradient id="ic-orange" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#ffc35a" />
-          <stop offset="0.5" stopColor="#f7941d" />
-          <stop offset="1" stopColor="#d97400" />
-        </linearGradient>
-        <linearGradient id="ic-choco" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#7a4424" />
-          <stop offset="0.45" stopColor="#4f2712" />
-          <stop offset="1" stopColor="#2b1206" />
-        </linearGradient>
-        <linearGradient id="ic-cone" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#f0bd72" />
-          <stop offset="0.6" stopColor="#d9974c" />
-          <stop offset="1" stopColor="#a96a2c" />
-        </linearGradient>
-        <linearGradient id="ic-cream" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#fffaf0" />
-          <stop offset="1" stopColor="#e9d3ad" />
-        </linearGradient>
-        <linearGradient id="ic-stick" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#f3d7a6" />
-          <stop offset="1" stopColor="#d2ab6c" />
-        </linearGradient>
-        <pattern id="ic-waffle" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="18" height="18" fill="none" />
-          <path d="M0 0 H18 M0 0 V18" stroke="#9a5e24" strokeWidth="2.4" opacity="0.75" />
-        </pattern>
-        <clipPath id="ic-cone-clip">
-          <path d="M238 250 L362 250 L300 505 Z" />
-        </clipPath>
-        <mask id="ic-bite">
-          <rect x="-100" y="-160" width="200" height="340" fill="#fff" />
-          <circle cx="48" cy="-112" r="26" fill="#000" />
-          <circle cx="20" cy="-128" r="22" fill="#000" />
-          <circle cx="62" cy="-82" r="20" fill="#000" />
-        </mask>
-        <filter id="ic-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="14" stdDeviation="12" floodColor="#7a4a00" floodOpacity="0.35" />
-        </filter>
-      </defs>
-
-      {/* milk splash */}
-      <path
-        d="M40 430 C 70 360, 120 400, 150 330 C 170 380, 200 370, 230 300 C 250 350, 280 345, 300 280 C 320 345, 350 350, 370 300 C 400 370, 430 380, 450 330 C 480 400, 530 360, 560 430 C 520 480, 80 480, 40 430 Z"
-        fill="#fffdf6"
-        opacity={0.95}
-      />
-      {[
-        [150, 300, 8],
-        [232, 262, 6],
-        [372, 262, 7],
-        [452, 296, 6],
-        [100, 360, 5],
-        [512, 360, 5],
-        [300, 244, 5],
-      ].map(([x, y, r]) => (
-        <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fffdf6" />
-      ))}
-
-      {/* orange popsicle */}
-      <g transform="translate(170 270) rotate(-24)" filter="url(#ic-shadow)">
-        <rect x={-14} y={88} width={28} height={92} rx={12} fill="url(#ic-stick)" />
-        <rect x={-62} y={-130} width={124} height={230} rx={52} fill="url(#ic-orange)" />
-        <rect x={-46} y={-108} width={16} height={170} rx={8} fill="#ffe0a8" opacity={0.55} />
-      </g>
-
-      {/* choco-nut bar with a bite */}
-      <g transform="translate(430 270) rotate(22)" filter="url(#ic-shadow)">
-        <rect x={-14} y={88} width={28} height={92} rx={12} fill="url(#ic-stick)" />
-        <g mask="url(#ic-bite)">
-          <rect x={-62} y={-130} width={124} height={230} rx={40} fill="url(#ic-choco)" />
-          {nuts.map(([x, y, r], i) => (
-            <circle key={i} cx={x} cy={y} r={r} fill={i % 2 ? "#d9a066" : "#f0c58c"} />
-          ))}
-          <rect x={-48} y={-110} width={12} height={170} rx={6} fill="#fff" opacity={0.12} />
-        </g>
-        <path d="M24 -106 C 34 -90, 48 -88, 56 -64" fill="none" stroke="#9a5a2c" strokeWidth={6} strokeLinecap="round" />
-      </g>
-
-      {/* chocolate cone (front) */}
-      <g filter="url(#ic-shadow)">
-        <path d="M238 250 L362 250 L300 505 Z" fill="url(#ic-cone)" />
-        <rect x={238} y={250} width={124} height={260} fill="url(#ic-waffle)" clipPath="url(#ic-cone-clip)" />
-        <rect x={230} y={240} width={140} height={24} rx={12} fill="#c4813d" />
-        <rect x={232} y={242} width={136} height={6} rx={3} fill="#e7b072" />
-        {/* swirl */}
-        <path
-          d="M226 246 C 214 210, 240 190, 262 196 C 252 160, 300 140, 318 162 C 336 132, 380 156, 366 192 C 392 198, 388 236, 374 246 Z"
-          fill="url(#ic-cream)"
-        />
-        <path d="M262 196 C 286 206, 320 200, 340 186" fill="none" stroke="#d8bd8f" strokeWidth={4} strokeLinecap="round" />
-        <path d="M250 228 C 280 236, 330 236, 360 222" fill="none" stroke="#d8bd8f" strokeWidth={4} strokeLinecap="round" />
-        {/* chocolate drizzle */}
-        <path
-          d="M236 214 C 252 230, 262 196, 280 214 C 296 232, 304 176, 322 198 C 338 220, 348 168, 364 206"
-          fill="none"
-          stroke="#3b1a09"
-          strokeWidth={10}
-          strokeLinecap="round"
-        />
-        <path d="M280 214 L282 238 M322 198 L320 228 M252 222 L250 240" stroke="#3b1a09" strokeWidth={7} strokeLinecap="round" />
-        <path d="M244 210 C 256 220, 266 194, 282 208" fill="none" stroke="#8a4b25" strokeWidth={3} strokeLinecap="round" opacity={0.8} />
-        {[
-          [270, 176, 0],
-          [302, 160, 30],
-          [334, 178, -20],
-          [292, 190, 60],
-          [352, 196, 10],
-        ].map(([x, y, r], i) => (
-          <rect key={i} x={x - 5} y={y - 4} width={10} height={8} rx={2} fill="#c68b4e" transform={`rotate(${r} ${x} ${y})`} />
-        ))}
-      </g>
-    </g>
-  )
-}
 
 const KEYFRAMES = `
 @keyframes king-hero-bounce {
@@ -1393,6 +1319,17 @@ const KEYFRAMES = `
 @keyframes king-hero-twinkle {
   0%, 100% { opacity: 0.15; }
   50% { opacity: 1; }
+}
+@keyframes king-hero-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(250,176,1,0.55); }
+  100% { box-shadow: 0 0 0 16px rgba(250,176,1,0); }
+}
+.king-hero-hint-ring {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 999px; color: ${YELLOW};
+  border: 1.5px solid rgba(255,214,107,0.9); background: rgba(0,30,42,0.45);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  animation: king-hero-pulse 2s ease-out infinite;
 }
 .king-hero-float { animation: king-hero-float 5s ease-in-out infinite; }
 .king-hero-twinkle { animation: king-hero-twinkle 2.8s ease-in-out infinite; }
@@ -1426,6 +1363,6 @@ const KEYFRAMES = `
   .king-hero-btn { height: 46px; padding: 0 18px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .king-hero-float, .king-hero-twinkle { animation: none; }
+  .king-hero-float, .king-hero-twinkle, .king-hero-hint-ring { animation: none; }
 }
 `

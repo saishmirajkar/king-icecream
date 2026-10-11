@@ -13,6 +13,7 @@ components/ui/king-store-hero.tsx        ← the King hero (use this)
 components/ui/scroll-locked-video-hero.tsx  ← original reference component
 components/demo.tsx                       ← original reference demo
 public/brand/king-logo.png                ← logo, transparent background
+public/products/*.webp                    ← product photos, cut out on transparent backgrounds
 app/page.tsx                              ← demo landing page (hero + sample sections)
 app/reference/page.tsx                    ← the original video hero, for comparison
 ```
@@ -44,9 +45,10 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 
 ## Moving it into the Replit project
 
-1. **Copy two files** into the Replit project:
+1. **Copy the component and images** into the Replit project:
    * `components/ui/king-store-hero.tsx` → `components/ui/` (or `src/components/ui/` in a Vite app)
    * `public/brand/king-logo.png` → `public/brand/`
+   * the whole `public/products/` folder → `public/products/`
 2. **Install the icon package** (only dependency): `npm install lucide-react`
 3. **Load the fonts** (Playfair Display + Inter). Put this in `<head>`:
    `index.html` for Vite, or `app/layout.tsx` for Next.js:
@@ -91,12 +93,13 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | --- | --- | --- |
 | `logoSrc` | `/brand/king-logo.png` | Sign above the awning |
 | `title` | `A Royal Welcome Awaits` | Intro line in front of the store (the page's `<h1>`) |
-| `scrollHint` | `Scroll to step inside` | |
+| `scrollHint` | `Scroll` | Label above the animated arrow at the bottom |
 | `eyebrow` | `Welcome to the Kingdom` | Small caps above the final headline |
 | `headline` | `Every Scoop, A Royal Treat` | Final reveal (`<h2>`) |
 | `subheadline` | `Handcrafted ice creams made with the goodness of milk.` | |
 | `primaryCta` / `secondaryCta` | Explore Flavours / Find a Store | `{ label, href }` or `false` to hide |
-| `awningText` | `KING ICE CREAM · PREMIUM PARLOUR` | Gold lettering on the awning |
+| `awningText` | `THE TASTE OF ROYALTY` | Gold lettering on the awning (brand tagline) |
+| `products` | the 7 photos in `public/products` | `{ hero, heroLeft, heroRight, tubs[], bars[] }`. Any key you pass replaces the default. `hero` stands front and centre in the parlour with `heroLeft` / `heroRight` either side; `tubs` and `bars` fill the shop windows and the parlour shelves |
 | `scrubDistance` | `2600` | Scroll distance (px) for the whole scene. Higher = slower |
 | `showSkip` | `true` | Show the "Skip intro" button |
 | `className` / `style` | | Applied to the `<section>` |
@@ -128,4 +131,4 @@ sections in `app/page.tsx` use Tailwind classes.
 
 Scroll-lock scrub technique adapted from *MetroHero* by
 [Guglielmo Giannattasio](https://www.guglielmogiannattasio.it) (21st.dev).
-The King storefront, parlour and ice-cream illustrations are original SVG.
+The King storefront and parlour are original SVG; product photos are King Ice Cream's own packshots.
