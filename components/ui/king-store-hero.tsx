@@ -10,9 +10,12 @@ import { ArrowRight, ChevronDown, MapPin } from "lucide-react"
 // scrub), but instead of seeking a video, scroll input drives the
 // King Ice Cream storefront artwork:
 //
-//   0.00 – 0.55  camera eases toward the store, the glass doors swing in
-//   0.40 – 0.88  camera flies through the doorway, warm light floods out
-//   0.80 – 1.00  the parlour settles, headline + CTAs fade in
+//   0.00 – 0.45  camera eases toward the store, the glass doors swing in
+//                and the King logo lights up on the arch inside
+//   0.30 – 0.92  camera glides through the doorway at an even pace
+//   0.55 – 1.00  the parlour dissolves in around you, its centre arch
+//                lined up with the arch seen through the door, then
+//                settles; headline + CTAs fade in
 //
 // The storefront is alive before anyone scrolls: a small WebGL shader
 // sways the flowers and trees and ripples the sea (driven by a wind
@@ -45,6 +48,8 @@ export interface KingStoreAssets {
   doorRight: string
   /** Wind mask (half size): red = foliage that sways, green = sea that ripples. */
   windMask: string
+  /** King logo, shown on the arch inside the store and in the parlour. */
+  logo: string
 }
 
 export interface KingStoreHeroProps {
@@ -94,6 +99,7 @@ export const DEFAULT_ASSETS: KingStoreAssets = {
   doorLeft: "/store/door-left.webp",
   doorRight: "/store/door-right.webp",
   windMask: "/store/wind-mask.png",
+  logo: "/brand/king-logo.png",
 }
 
 // Natural aspect ratios (width / height) of the product cut-outs
@@ -119,7 +125,13 @@ const STAGE_H = 1116
 const DOOR = { x: 803, y: 345, w: 394, h: 608 } // the doorway the camera flies through
 const LEAVES = { x: 800, y: 342, w: 400, h: 614 } // bounding box of both door leaves
 const LEAF = { w: 204, leftHinge: 3.5, rightHinge: 201, glass: { x: 18, y: 17, w: 166, h: 573 } }
-const FOCUS = { x: 1000, y: 650 } // camera zooms toward this point
+// The teal arch seen through the doors (artwork units, top-centre point) and
+// its twin in the parlour. The camera glides toward the first and comes to
+// rest exactly where the second rests, so the rooms dissolve into each other
+// with the arches, logos and side shelves lined up.
+const INNER_ARCH = { x: 1000, top: 450, w: 162 }
+const PARLOUR_ARCH = { x: 800, top: 380, w: 420 }
+const LOGO_RATIO = 375 / 578
 const LANTERNS = [
   { x: 408, y: 498, r: 90 },
   { x: 1590, y: 505, r: 90 },
@@ -132,8 +144,8 @@ function clamp(v: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, v))
 }
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
-const easeInCubic = (t: number) => t * t * t
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
+const easeInOutSine = (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t)
 const smooth = (t: number) => t * t * (3 - 2 * t)
 const range = (p: number, start: number, end: number) => clamp((p - start) / (end - start))
 
@@ -148,7 +160,7 @@ export default function KingStoreHero({
   secondaryCta = { label: "Find a Store", href: "#stores" },
   products,
   assets,
-  scrubDistance = 2600,
+  scrubDistance = 3400,
   showSkip = true,
   className,
   style,
@@ -163,6 +175,7 @@ export default function KingStoreHero({
   const doorGlowRef = useRef<HTMLDivElement>(null)
   const petalsRef = useRef<HTMLDivElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
+  const innerLogoRef = useRef<HTMLDivElement>(null)
   const introRef = useRef<HTMLDivElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
   const finaleRef = useRef<HTMLDivElement>(null)
@@ -209,10 +222,12 @@ export default function KingStoreHero({
     let s = 1 // stage scale
     let tx = 0
     let ty = 0
-    let focusX = 0
-    let focusY = 0
-    let zoomEnd = 5
     let si = 1 // interior scale
+    let zoomEnd = 3 // artwork zoom at which its arch matches the resting parlour arch
+    let startX = 0 // inner arch on screen before any scrolling…
+    let startY = 0
+    let restX = 0 // …and where the parlour arch rests at the end
+    let restY = 0
 
     function measure() {
       vw = section!.clientWidth || window.innerWidth
@@ -223,15 +238,12 @@ export default function KingStoreHero({
       s = Math.max(vw / STAGE_W, Math.min(vh / STAGE_H, vw / 1030))
       tx = (vw - STAGE_W * s) / 2
       ty = (vh - STAGE_H * s) * (STAGE_H * s < vh ? 0.3 : 0.35)
-      focusX = tx + FOCUS.x * s
-      focusY = ty + FOCUS.y * s
-      // Zoom needed for the doorway to swallow the whole viewport.
-      const left = (FOCUS.x - DOOR.x) * s
-      const right = (DOOR.x + DOOR.w - FOCUS.x) * s
-      const top = (FOCUS.y - DOOR.y) * s
-      const bottom = (DOOR.y + DOOR.h - FOCUS.y) * s
-      zoomEnd = Math.max(focusX / left, (vw - focusX) / right, focusY / top, (vh - focusY) / bottom) * 1.1
       si = Math.max(vw / INT_W, vh / INT_H)
+      zoomEnd = Math.max(1.05, (PARLOUR_ARCH.w * si) / (INNER_ARCH.w * s))
+      startX = tx + INNER_ARCH.x * s
+      startY = ty + INNER_ARCH.top * s
+      restX = vw / 2 + (PARLOUR_ARCH.x - INT_W / 2) * si
+      restY = vh / 2 + (PARLOUR_ARCH.top - INT_H / 2) * si
       // Feather the artwork's top and bottom edge into sky / paving when they show.
       const feather =
         STAGE_H * s < vh - 1 ? "linear-gradient(180deg, transparent 0, #000 5%, #000 90%, transparent 100%)" : "none"
@@ -244,19 +256,30 @@ export default function KingStoreHero({
     }
 
     // ── scene ─────────────────────────────────────────────────
+    // One continuous camera move: a gentle approach while the doors open,
+    // then an even-paced glide (log-space, so the speed feels constant)
+    // that comes to rest on the inner arch.
+    function zoomAt(p: number) {
+      const approach = Math.min(1.3, Math.sqrt(zoomEnd))
+      return Math.exp(
+        Math.log(approach) * smooth(range(p, 0, 0.42)) + Math.log(zoomEnd / approach) * easeInOutSine(range(p, 0.28, 0.86)),
+      )
+    }
+
     function render(p: number) {
-      const door = easeInOutCubic(range(p, 0.08, 0.5))
-      const approach = smooth(range(p, 0, 0.55))
-      const dive = easeInCubic(range(p, 0.4, 0.88))
-      const APPROACH_ZOOM = 1.4
-      const zoom = Math.exp(Math.log(APPROACH_ZOOM) * approach + Math.log(zoomEnd / APPROACH_ZOOM) * dive)
+      const door = easeInOutCubic(range(p, 0.06, 0.42))
+      const zoom = zoomAt(p)
+      const S = s * zoom
+      // The inner arch drifts from where it starts to where the parlour arch
+      // rests, in step with the zoom.
+      const u = clamp((zoom - 1) / (zoomEnd - 1))
+      const archX = startX + (restX - startX) * u
+      const archY = startY + (restY - startY) * u
 
       const stage = stageRef.current
       if (stage) {
-        const sx = focusX + zoom * (tx - focusX)
-        const sy = focusY + zoom * (ty - focusY)
-        stage.style.transform = `translate3d(${sx}px, ${sy}px, 0) scale(${s * zoom})`
-        const fade = 1 - smooth(range(p, 0.78, 0.88))
+        stage.style.transform = `translate3d(${archX - INNER_ARCH.x * S}px, ${archY - INNER_ARCH.top * S}px, 0) scale(${S})`
+        const fade = 1 - smooth(range(p, 0.6, 0.84))
         stage.style.opacity = String(fade)
         stage.style.visibility = fade <= 0.001 ? "hidden" : "visible"
       }
@@ -269,19 +292,21 @@ export default function KingStoreHero({
         if (glass) glass.style.opacity = String(Math.sin(door * Math.PI) * 0.9)
       }
       if (doorGlowRef.current) doorGlowRef.current.style.opacity = String(door)
-      if (petalsRef.current) petalsRef.current.style.opacity = String(1 - range(p, 0.3, 0.6))
+      if (innerLogoRef.current) innerLogoRef.current.style.opacity = String(smooth(range(p, 0.1, 0.4)))
+      if (petalsRef.current) petalsRef.current.style.opacity = String(1 - range(p, 0.25, 0.5))
 
       const interior = interiorRef.current
       if (interior) {
-        const k = easeOutCubic(range(p, 0.78, 1))
-        const scale = si * (1.14 - 0.14 * k)
-        interior.style.transform = `translate3d(${vw / 2}px, ${vh / 2}px, 0) scale(${scale}) translate(${-INT_W / 2}px, ${-INT_H / 2}px)`
-        interior.style.visibility = p > 0.7 ? "visible" : "hidden"
+        // Locked to the inner arch: same place, same size, so the dissolve is seamless.
+        const k = (S * INNER_ARCH.w) / PARLOUR_ARCH.w
+        interior.style.transform = `translate3d(${archX}px, ${archY}px, 0) scale(${k}) translate(${-PARLOUR_ARCH.x}px, ${-PARLOUR_ARCH.top}px)`
+        interior.style.visibility = p > 0.58 ? "visible" : "hidden"
       }
 
       if (flashRef.current) {
-        const f = clamp(1 - Math.abs(p - 0.83) / 0.09)
-        flashRef.current.style.opacity = String(Math.pow(f, 1.6) * 0.92)
+        // a soft warm bloom while the rooms cross over, never a white-out
+        const f = clamp(1 - Math.abs(p - 0.72) / 0.12)
+        flashRef.current.style.opacity = String(smooth(f) * 0.3)
       }
 
       if (introRef.current) {
@@ -414,14 +439,17 @@ export default function KingStoreHero({
     }
 
     // ── loop ──────────────────────────────────────────────────
+    let last = performance.now()
     function frame(now: number) {
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000))
+      last = now
       if (inertia !== 0) {
         if (locked) handleInput(inertia, 90)
         inertia *= 0.9
         if (Math.abs(inertia) < 0.5) inertia = 0
       }
       const diff = target - current
-      current = Math.abs(diff) < 0.0004 ? target : current + diff * 0.12
+      current = Math.abs(diff) < 0.0003 ? target : current + diff * (1 - Math.exp(-dt * 5.5))
       if (autoRelease && current > 0.995) unlock()
       if (current !== rendered) {
         render(current)
@@ -527,7 +555,7 @@ export default function KingStoreHero({
           visibility: "hidden",
         }}
       >
-        <Parlour products={items} />
+        <Parlour products={items} logo={art.logo} />
       </div>
 
       {/* ── Storefront ── */}
@@ -564,6 +592,30 @@ export default function KingStoreHero({
           height={STAGE_H}
           style={{ position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H, opacity: 0, transition: "opacity .6s ease" }}
         />
+
+        {/* King logo lit up on the teal arch inside the store */}
+        <div
+          ref={innerLogoRef}
+          style={{ position: "absolute", left: INNER_ARCH.x - 32.5, top: 459, width: 65, height: 65 * LOGO_RATIO, opacity: 0 }}
+        >
+          <div
+            className="king-hero-flicker"
+            style={{
+              position: "absolute",
+              inset: -26,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(255,236,180,0.55) 0%, rgba(255,214,120,0.18) 40%, rgba(255,214,120,0) 70%)",
+              mixBlendMode: "screen",
+            }}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={art.logo}
+            alt=""
+            draggable={false}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", filter: "drop-shadow(0 2px 4px rgba(0,20,28,0.45))" }}
+          />
+        </div>
 
         {/* lantern glow */}
         {LANTERNS.map((l) => (
@@ -682,7 +734,7 @@ export default function KingStoreHero({
         style={{
           position: "absolute",
           inset: 0,
-          background: "radial-gradient(ellipse at 50% 55%, #fffdf7 0%, #fff1d2 50%, #f6dfb3 100%)",
+          background: "radial-gradient(ellipse at 50% 55%, #fff6e2 0%, #ffe6b5 55%, rgba(246,214,160,0.6) 100%)",
           opacity: 0,
           pointerEvents: "none",
         }}
@@ -1065,7 +1117,7 @@ function arch(x0: number, x1: number, top: number, bottom: number) {
   return `M${x0} ${bottom} V${top + r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${bottom} Z`
 }
 
-function Parlour({ products }: { products: KingHeroProducts }) {
+function Parlour({ products, logo }: { products: KingHeroProducts; logo: string }) {
   const { tubs, bars } = products
   const center = arch(590, 1010, 380, 790)
   const left = arch(170, 470, 400, 790)
@@ -1157,12 +1209,13 @@ function Parlour({ products }: { products: KingHeroProducts }) {
 
       {/* centre arch: the hero display */}
       <path d={center} fill="url(#ki-teal)" />
-      <ellipse cx={800} cy={520} rx={200} ry={210} fill="url(#ki-glow)" opacity={0.35} />
+      <ellipse cx={800} cy={470} rx={200} ry={170} fill="url(#ki-glow)" opacity={0.45} />
+      <image href={logo} x={800 - 84} y={404} width={168} height={168 * LOGO_RATIO} preserveAspectRatio="xMidYMid meet" filter="url(#ki-shadow)" />
       <g className="king-hero-float" style={{ transformOrigin: "800px 700px" }}>
         <g filter="url(#ki-shadow)">
-          <Product src={products.heroLeft} cx={688} bottom={748} height={250} ratio={BAR_RATIO} rotate={-10} shadow={false} />
-          <Product src={products.heroRight} cx={912} bottom={748} height={250} ratio={BAR_RATIO} rotate={10} shadow={false} />
-          <Product src={products.hero} cx={800} bottom={758} height={230} ratio={TUB_RATIO} shadow={false} />
+          <Product src={products.heroLeft} cx={688} bottom={748} height={226} ratio={BAR_RATIO} rotate={-10} shadow={false} />
+          <Product src={products.heroRight} cx={912} bottom={748} height={226} ratio={BAR_RATIO} rotate={10} shadow={false} />
+          <Product src={products.hero} cx={800} bottom={758} height={212} ratio={TUB_RATIO} shadow={false} />
         </g>
       </g>
       {/* marble plinth */}

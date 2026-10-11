@@ -20,7 +20,7 @@ public/store/storefront.webp                 ← storefront artwork, door leaves
 public/store/door-left.webp, door-right.webp ← the two door leaves, cut out to swing open
 public/store/wind-mask.png                   ← which pixels sway (red = plants) or ripple (green = sea)
 public/products/*.webp                       ← product photos, cut out on transparent backgrounds
-public/brand/king-logo.png                   ← logo, transparent background (not needed by the hero)
+public/brand/king-logo.png                   ← logo, lit up on the arch inside the store and in the parlour
 app/page.tsx                                 ← demo landing page (hero + sample sections)
 app/reference/page.tsx                       ← the original video hero, for comparison
 ```
@@ -37,9 +37,10 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | Scroll progress | What happens |
 | --- | --- |
 | before scrolling | flowers and trees sway, the sea ripples, petals fall, lanterns flicker |
-| 0 – 55 % | camera eases toward the store, the gold glass doors swing inward |
-| 40 – 88 % | camera flies through the doorway, a soft golden flash hides the cut |
-| 85 – 100 % | parlour settles, headline, sub-copy and CTAs fade in |
+| 0 – 45 % | camera eases toward the store, the gold glass doors swing inward and the King logo lights up on the arch inside |
+| 30 – 86 % | camera glides through the doorway at an even pace toward the arch inside |
+| 60 – 84 % | the parlour dissolves in, its arches, logo and shelves lined up with the ones seen through the door |
+| 86 – 100 % | headline, sub-copy and CTAs fade in |
 
 * While the hero is at the top of the page, the page **does not scroll**: wheel,
   touch, and keyboard (↓ ↑ PgDn PgUp Space Home) only scrub the scene,
@@ -58,6 +59,7 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 1. **Copy the component and images** into the Replit project:
    * `components/ui/king-store-hero.tsx` → `components/ui/` (or `src/components/ui/` in a Vite app)
    * the whole `public/store/` folder → `public/store/`
+   * `public/brand/king-logo.png` → `public/brand/`
    * the whole `public/products/` folder → `public/products/`
 2. **Install the icon package** (only dependency): `npm install lucide-react`
 3. **Load the fonts** (Playfair Display + Inter). Put this in `<head>`:
@@ -109,8 +111,8 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | `subheadline` | `Handcrafted ice creams made with the goodness of milk.` | |
 | `primaryCta` / `secondaryCta` | Explore Flavours / Find a Store | `{ label, href }` or `false` to hide |
 | `products` | the 7 photos in `public/products` | `{ hero, heroLeft, heroRight, tubs[], bars[] }`. Any key you pass replaces the default. `hero` stands front and centre in the parlour with `heroLeft` / `heroRight` either side; `tubs` and `bars` fill the side shelves |
-| `assets` | the files in `public/store` | `{ storefront, doorLeft, doorRight, windMask }`, if you host them elsewhere |
-| `scrubDistance` | `2600` | Scroll distance (px) for the whole scene. Higher = slower |
+| `assets` | the files in `public/store` | `{ storefront, doorLeft, doorRight, windMask, logo }`, if you host them elsewhere |
+| `scrubDistance` | `3400` | Scroll distance (px) for the whole scene. Higher = slower |
 | `showSkip` | `true` | Show the "Skip intro" button |
 | `className` / `style` | | Applied to the `<section>` |
 
