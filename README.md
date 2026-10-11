@@ -1,0 +1,131 @@
+# King Ice Cream — scroll-locked storefront hero
+
+Landing-page **Section 1** for King Ice Cream: a premium, brand-coloured
+ice-cream boutique whose glass doors swing open as the visitor scrolls,
+the camera glides through the doorway into the yellow parlour, and the
+headline + CTAs land. Built on the same scroll-lock / scrub idea as the
+21st.dev `scroll-locked-video-hero` reference, but fully illustrated in
+SVG + CSS (no video file), so it is sharp on every screen and weighs very
+little.
+
+```
+components/ui/king-store-hero.tsx        ← the King hero (use this)
+components/ui/scroll-locked-video-hero.tsx  ← original reference component
+components/demo.tsx                       ← original reference demo
+public/brand/king-logo.png                ← logo, transparent background
+app/page.tsx                              ← demo landing page (hero + sample sections)
+app/reference/page.tsx                    ← the original video hero, for comparison
+```
+
+## Run it here
+
+```bash
+npm install
+npm run dev        # http://localhost:3000   (reference: /reference)
+```
+
+## How it behaves
+
+| Scroll progress | What happens |
+| --- | --- |
+| 0 – 55 % | camera eases toward the store, the doors swing inward, warm light spills onto the carpet |
+| 40 – 88 % | camera flies through the doorway, a soft golden flash hides the cut |
+| 85 – 100 % | parlour settles, headline, sub-copy and CTAs fade in |
+
+* While the hero is at the top of the page, the page **does not scroll**: wheel,
+  touch, and keyboard (↓ ↑ PgDn PgUp Space Home) only scrub the scene,
+  forwards and backwards.
+* When the scene is finished and the visitor keeps scrolling down, the page
+  **unlocks** and continues to the next section. Scrolling back to the top
+  **re-locks** it and plays the scene in reverse.
+* A small **Skip intro** button jumps to the end.
+* `prefers-reduced-motion`: no lock, the finished parlour is shown straight away.
+* Touch: drag scrubs, with momentum on release.
+
+## Moving it into the Replit project
+
+1. **Copy two files** into the Replit project:
+   * `components/ui/king-store-hero.tsx` → `components/ui/` (or `src/components/ui/` in a Vite app)
+   * `public/brand/king-logo.png` → `public/brand/`
+2. **Install the icon package** (only dependency): `npm install lucide-react`
+3. **Load the fonts** (Playfair Display + Inter). Put this in `<head>`:
+   `index.html` for Vite, or `app/layout.tsx` for Next.js:
+   ```html
+   <link rel="preconnect" href="https://fonts.googleapis.com" />
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" />
+   ```
+   Without it the component falls back to Georgia / system fonts; it still works.
+4. **Use it as the first section** of the landing page:
+   ```tsx
+   import KingStoreHero from "@/components/ui/king-store-hero"
+
+   export default function Home() {
+     return (
+       <main>
+         <KingStoreHero
+           primaryCta={{ label: "Explore Flavours", href: "#flavours" }}
+           secondaryCta={{ label: "Find a Store", href: "#stores" }}
+         />
+         {/* …the rest of the existing landing page… */}
+       </main>
+     )
+   }
+   ```
+   If the project has no `@/` path alias, use a relative import instead
+   (`../components/ui/king-store-hero`).
+
+### Things to check in the Replit app
+
+* The hero must be the **first thing on the page** (a fixed/sticky navbar on
+  top of it is fine; give the navbar a `z-index`).
+* The page must scroll on the **window**. If the app wraps everything in a
+  scrolling `<div>` with `height: 100vh; overflow: auto`, the lock can't
+  hold. Remove that wrapper or let the body scroll.
+* Make `#flavours` / `#stores` (or whatever hrefs you pass) exist further
+  down the page.
+
+## Props
+
+| Prop | Default | Notes |
+| --- | --- | --- |
+| `logoSrc` | `/brand/king-logo.png` | Sign above the awning |
+| `title` | `A Royal Welcome Awaits` | Intro line in front of the store (the page's `<h1>`) |
+| `scrollHint` | `Scroll to step inside` | |
+| `eyebrow` | `Welcome to the Kingdom` | Small caps above the final headline |
+| `headline` | `Every Scoop, A Royal Treat` | Final reveal (`<h2>`) |
+| `subheadline` | `Handcrafted ice creams made with the goodness of milk.` | |
+| `primaryCta` / `secondaryCta` | Explore Flavours / Find a Store | `{ label, href }` or `false` to hide |
+| `awningText` | `KING ICE CREAM · PREMIUM PARLOUR` | Gold lettering on the awning |
+| `scrubDistance` | `2600` | Scroll distance (px) for the whole scene. Higher = slower |
+| `showSkip` | `true` | Show the "Skip intro" button |
+| `className` / `style` | | Applied to the `<section>` |
+
+## Project setup notes
+
+This repo is a minimal **Next.js (App Router) + TypeScript + Tailwind CSS v4**
+project with the **shadcn** layout (`components.json`, `lib/utils.ts`,
+`components/ui`). To create the same setup from scratch:
+
+```bash
+npx create-next-app@latest my-app --typescript --tailwind --app
+cd my-app
+npx shadcn@latest init
+npm install lucide-react
+```
+
+**Why `components/ui`?** It's the folder the shadcn CLI installs components
+into (the `ui` alias in `components.json`), and the folder that 21st.dev /
+shadcn snippets import from (`@/components/ui/...`). Keeping copied components
+there means future `npx shadcn add …` components and pasted snippets resolve
+without changing import paths.
+
+The hero itself doesn't need Tailwind: it uses inline styles plus one scoped
+`<style>` block, so it also works in a plain React + Vite app. Only the demo
+sections in `app/page.tsx` use Tailwind classes.
+
+## Credits
+
+Scroll-lock scrub technique adapted from *MetroHero* by
+[Guglielmo Giannattasio](https://www.guglielmogiannattasio.it) (21st.dev).
+The King storefront, parlour and ice-cream illustrations are original SVG.
