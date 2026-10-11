@@ -62,12 +62,12 @@ npm run dev        # http://localhost:3000   (reference: /reference)
    * `public/brand/king-logo.png` → `public/brand/`
    * the whole `public/products/` folder → `public/products/`
 2. **Install the icon package** (only dependency): `npm install lucide-react`
-3. **Load the fonts** (Playfair Display + Inter). Put this in `<head>`:
+3. **Load the fonts** (Playfair Display, Inter and Inter Tight). Put this in `<head>`:
    `index.html` for Vite, or `app/layout.tsx` for Next.js:
    ```html
    <link rel="preconnect" href="https://fonts.googleapis.com" />
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" />
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" />
    ```
    Without it the component falls back to Georgia / system fonts; it still works.
 4. **Use it as the first section** of the landing page:
@@ -107,11 +107,14 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | `scrollHint` | `Scroll` | Label above the animated arrow at the bottom |
 | `tagline` | `["THE TASTE", "OF ROYALTY"]` | Gold lettering on the teal fascia, left and right of the sign. `false` hides it |
 | `eyebrow` | `Welcome to the Kingdom` | Small caps above the final headline |
-| `headline` | `Every Scoop, A Royal Treat` | Final reveal (`<h2>`) |
+| `headline` | `Every scoop, a royal treat.` | Final reveal (`<h2>`), in the website's heavy type |
+| `headlineAccent` | `royal` | Word in the headline drawn as outline lettering, like "looks" on the website hero |
 | `subheadline` | `Handcrafted ice creams made with the goodness of milk.` | |
 | `primaryCta` / `secondaryCta` | Explore Flavours / Find a Store | `{ label, href }` or `false` to hide |
 | `products` | the 7 photos in `public/products` | `{ hero, heroLeft, heroRight, tubs[], bars[] }`. Any key you pass replaces the default. `hero` stands front and centre in the parlour with `heroLeft` / `heroRight` either side; `tubs` and `bars` fill the side shelves |
 | `assets` | the files in `public/store` | `{ storefront, doorLeft, doorRight, windMask, logo }`, if you host them elsewhere |
+| `ticker` | `["Pure milk", "No palm oil", "Made in Belagavi", "Big smiles"]` | Scrolling band across the top of the ending frame. `false` hides it |
+| `badge` | `100% pure milk` | Round sticker on the hero display. `false` hides it |
 | `scrubDistance` | `3400` | Scroll distance (px) for the whole scene. Higher = slower |
 | `showSkip` | `true` | Show the "Skip intro" button |
 | `className` / `style` | | Applied to the `<section>` |

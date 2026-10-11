@@ -62,6 +62,8 @@ export interface KingStoreHeroProps {
   /** Final reveal copy, shown once you are inside the parlour. */
   eyebrow?: string
   headline?: string
+  /** A word in the headline drawn as outline lettering, like the website hero. */
+  headlineAccent?: string
   subheadline?: string
   primaryCta?: { label: string; href: string } | false
   secondaryCta?: { label: string; href: string } | false
@@ -69,6 +71,10 @@ export interface KingStoreHeroProps {
   products?: Partial<KingHeroProducts>
   /** Storefront artwork layers. */
   assets?: Partial<KingStoreAssets>
+  /** Words for the ticker band across the top of the ending frame. `false` hides it. */
+  ticker?: string[] | false
+  /** Round sticker on the hero display. `false` hides it. */
+  badge?: string | false
   /** Total input distance (px) needed to scrub the full scene. */
   scrubDistance?: number
   /** Show a small "Skip intro" button while the intro is playing. */
@@ -108,15 +114,23 @@ const BAR_RATIO = 0.42
 
 // Brand palette
 const TEAL = "#0b6a7c"
-const TEAL_DEEP = "#00465e"
 const YELLOW = "#fab001"
 const CREAM = "#fff6e3"
 const SKY = "#64b9fb"
 const STONE = "#ece2d4"
 
+// The King website's look, used for the ending frame
+const SUN = "#fece51"
+const INK = "#073f52"
+const OCEAN = "#00799b"
+const OCEAN_DEEP = "#075974"
+const MILK = "#fef8e6"
+const PINK = "#f9c0d1"
+const MINT = "#bee3dd"
+const DISPLAY = "'Inter Tight', 'Archivo Black', 'Helvetica Neue', Arial, sans-serif"
+
 const SERIF = "'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif"
 const SANS = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-const GOLD_CSS = "linear-gradient(180deg, #fff1b8 0%, #f9c846 28%, #d99a0b 55%, #f7cf5a 78%, #b97a00 100%)"
 const GOLD_CSS_H = "linear-gradient(90deg, #b97a00 0%, #f7cf5a 22%, #fff1b8 45%, #d99a0b 70%, #f9c846 100%)"
 
 // Storefront artwork, in its own pixel units (2000 × 1116).
@@ -158,12 +172,15 @@ export default function KingStoreHero({
   scrollHint = "Scroll",
   tagline = ["THE TASTE", "OF ROYALTY"],
   eyebrow = "Welcome to the Kingdom",
-  headline = "Every Scoop, A Royal Treat",
+  headline = "Every scoop, a royal treat.",
+  headlineAccent = "royal",
   subheadline = "Handcrafted ice creams made with the goodness of milk.",
   primaryCta = { label: "Explore Flavours", href: "#flavours" },
   secondaryCta = { label: "Find a Store", href: "#stores" },
   products,
   assets,
+  ticker = ["Pure milk", "No palm oil", "Made in Belagavi", "Big smiles"],
+  badge = "100% pure milk",
   scrubDistance = 3400,
   showSkip = true,
   className,
@@ -567,7 +584,7 @@ export default function KingStoreHero({
           visibility: "hidden",
         }}
       >
-        <Parlour products={items} logo={art.logo} />
+        <Parlour products={items} logo={art.logo} ticker={ticker} badge={badge} />
       </div>
 
       {/* ── Storefront ── */}
@@ -831,7 +848,7 @@ export default function KingStoreHero({
         </span>
       </div>
 
-      {/* ── Finale copy (inside the parlour) ── */}
+      {/* ── Finale copy (inside the parlour), in the website's type ── */}
       <div
         ref={finaleRef}
         aria-hidden
@@ -842,48 +859,60 @@ export default function KingStoreHero({
           flexDirection: "column",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "clamp(64px, 11vh, 120px) 6% clamp(36px, 7vh, 72px)",
+          padding: "clamp(70px, 11vh, 120px) 6% clamp(36px, 7vh, 72px)",
           textAlign: "center",
           opacity: 0,
           pointerEvents: "none",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(8px, 1.4vh, 14px)", maxWidth: 820 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(8px, 1.4vh, 14px)", maxWidth: 900 }}>
           <span
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
               fontFamily: SANS,
-              fontSize: "clamp(10px, 1.2vw, 12px)",
-              fontWeight: 700,
-              letterSpacing: "0.38em",
+              fontSize: "clamp(10px, 1.1vw, 12px)",
+              fontWeight: 800,
+              letterSpacing: "0.16em",
               textTransform: "uppercase",
-              color: "#a87412",
+              color: INK,
             }}
           >
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: OCEAN, display: "inline-block" }} />
             {eyebrow}
           </span>
           <h2
             style={{
               margin: 0,
-              fontFamily: SERIF,
-              fontWeight: 800,
-              fontSize: "clamp(32px, 5.4vw, 76px)",
-              lineHeight: 1.02,
-              letterSpacing: "-0.015em",
-              color: TEAL_DEEP,
-              textShadow: "0 2px 0 rgba(255,255,255,0.6)",
+              fontFamily: DISPLAY,
+              fontWeight: 900,
+              fontSize: "clamp(34px, 5.6vw, 84px)",
+              lineHeight: 0.95,
+              letterSpacing: "-0.045em",
+              color: INK,
             }}
           >
-            {headline}
+            {splitAccent(headline, headlineAccent).map((part, i) =>
+              part.accent ? (
+                <span key={i} className="king-hero-outline">
+                  {part.text}
+                </span>
+              ) : (
+                <span key={i}>{part.text}</span>
+              ),
+            )}
           </h2>
           {subheadline && (
             <p
               style={{
                 margin: 0,
                 fontFamily: SANS,
-                fontSize: "clamp(14px, 1.5vw, 18px)",
+                fontSize: "clamp(14px, 1.4vw, 17px)",
                 fontWeight: 500,
                 lineHeight: 1.45,
-                color: "rgba(0,70,94,0.85)",
+                color: INK,
+                opacity: 0.85,
                 maxWidth: 520,
               }}
             >
@@ -897,12 +926,12 @@ export default function KingStoreHero({
             {primaryCta && (
               <a href={primaryCta.href} className="king-hero-btn king-hero-btn--primary">
                 {primaryCta.label}
-                <ArrowRight size={18} strokeWidth={2.2} />
+                <ArrowRight size={16} strokeWidth={2.6} />
               </a>
             )}
             {secondaryCta && (
               <a href={secondaryCta.href} className="king-hero-btn king-hero-btn--ghost">
-                <MapPin size={17} strokeWidth={2} />
+                <MapPin size={15} strokeWidth={2.4} />
                 {secondaryCta.label}
               </a>
             )}
@@ -1137,67 +1166,79 @@ function arch(x0: number, x1: number, top: number, bottom: number) {
   return `M${x0} ${bottom} V${top + r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${bottom} Z`
 }
 
-function Parlour({ products, logo }: { products: KingHeroProducts; logo: string }) {
+function splitAccent(text: string, accent?: string) {
+  if (!accent) return [{ text, accent: false }]
+  const i = text.toLowerCase().indexOf(accent.toLowerCase())
+  if (i < 0) return [{ text, accent: false }]
+  return [
+    { text: text.slice(0, i), accent: false },
+    { text: text.slice(i, i + accent.length), accent: true },
+    { text: text.slice(i + accent.length), accent: false },
+  ].filter((part) => part.text)
+}
+
+/** The little sun doodle from the website hero. */
+function SunDoodle({ x, y, r, stroke = INK }: { x: number; y: number; r: number; stroke?: string }) {
+  return (
+    <g stroke={stroke} strokeWidth={r * 0.28} strokeLinecap="round" fill="none">
+      <circle cx={x} cy={y} r={r} />
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (Math.PI * 2 * i) / 8
+        return (
+          <line
+            key={i}
+            x1={x + Math.cos(a) * r * 1.7}
+            y1={y + Math.sin(a) * r * 1.7}
+            x2={x + Math.cos(a) * r * 2.3}
+            y2={y + Math.sin(a) * r * 2.3}
+          />
+        )
+      })}
+    </g>
+  )
+}
+
+function Parlour({
+  products,
+  logo,
+  ticker,
+  badge,
+}: {
+  products: KingHeroProducts
+  logo: string
+  ticker: string[] | false
+  badge: string | false
+}) {
   const { tubs, bars } = products
   const center = arch(590, 1010, 380, 790)
   const left = arch(170, 470, 400, 790)
   const right = arch(1130, 1430, 400, 790)
+  const tickerLine = ticker && ticker.length ? ticker.map((t) => t.toUpperCase()) : null
   return (
     <svg viewBox={`0 0 ${INT_W} ${INT_H}`} width={INT_W} height={INT_H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
       <defs>
-        <radialGradient id="ki-wall" cx="800" cy="420" r="1100" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#fffaf1" />
-          <stop offset="0.5" stopColor="#f3eadb" />
-          <stop offset="1" stopColor="#ddcdb3" />
-        </radialGradient>
-        <linearGradient id="ki-teal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#127c8f" />
-          <stop offset="1" stopColor="#06495a" />
-        </linearGradient>
-        <linearGradient id="ki-niche" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#efe4d1" />
-          <stop offset="1" stopColor="#e2d3ba" />
-        </linearGradient>
-        <linearGradient id="ki-marble" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#ddd5c8" />
-        </linearGradient>
-        <radialGradient id="ki-glow">
-          <stop offset="0" stopColor="#fff6dc" stopOpacity="0.95" />
-          <stop offset="0.5" stopColor="#ffe3a6" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#ffe3a6" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="ki-gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff1b8" />
-          <stop offset="0.35" stopColor="#e9bd55" />
-          <stop offset="0.7" stopColor="#b98314" />
-          <stop offset="1" stopColor="#f0cd73" />
-        </linearGradient>
-        <linearGradient id="ki-cove" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffd98f" stopOpacity="0.7" />
-          <stop offset="1" stopColor="#ffd98f" stopOpacity="0" />
-        </linearGradient>
+        <clipPath id="ki-center-clip">
+          <path d={center} />
+        </clipPath>
         <filter id="ki-shadow" x="-30%" y="-20%" width="160%" height="150%">
-          <feDropShadow dx="0" dy="14" stdDeviation="12" floodColor="#00242f" floodOpacity="0.45" />
+          <feDropShadow dx="0" dy="12" stdDeviation="10" floodColor="#062f3d" floodOpacity="0.35" />
+        </filter>
+        <filter id="ki-soft" x="-20%" y="-20%" width="140%" height="160%">
+          <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#8a6500" floodOpacity="0.25" />
         </filter>
       </defs>
 
-      {/* back wall with soft marble veining */}
-      <rect x={-1200} y={-1200} width={INT_W + 2400} height={INT_H + 2400} fill="url(#ki-wall)" />
-      {MARBLE_VEINS.map((d, i) => (
-        <path key={i} d={d} fill="none" stroke="#cbb994" strokeWidth={i % 2 ? 1.2 : 2.2} opacity={0.35} />
-      ))}
+      {/* sunny wall with the website's thin circle lines */}
+      <rect x={-1200} y={-1200} width={INT_W + 2400} height={INT_H + 2400} fill={SUN} />
+      <circle cx={1380} cy={130} r={300} fill="none" stroke={INK} strokeWidth={1.5} opacity={0.12} />
+      <circle cx={140} cy={860} r={260} fill="none" stroke={INK} strokeWidth={1.5} opacity={0.12} />
+      <SunDoodle x={1078} y={392} r={13} />
+      <SunDoodle x={520} y={520} r={9} stroke={OCEAN_DEEP} />
 
-      {/* ceiling cove with warm light */}
-      <rect x={-1200} y={-1200} width={INT_W + 2400} height={1270} fill="#efe5d4" />
-      <rect x={-1200} y={66} width={INT_W + 2400} height={6} fill="url(#ki-gold)" />
-      <rect x={-1200} y={72} width={INT_W + 2400} height={60} fill="url(#ki-cove)" />
-
-      {/* side arches with shelves: tubs left, bars right */}
+      {/* side arches as pastel cards with milk-white shelves: tubs left, bars right */}
       {[left, right].map((d, side) => (
         <g key={side}>
-          <path d={d} fill="url(#ki-niche)" />
-          <path d={d} fill="none" stroke="#c7b28c" strokeWidth={14} opacity={0.35} transform="translate(0 4)" />
+          <path d={d} fill={side === 0 ? PINK : MINT} />
           {[615, 772].map((y, row) => {
             const x0 = side === 0 ? 170 : 1130
             return (
@@ -1209,73 +1250,80 @@ function Parlour({ products, logo }: { products: KingHeroProducts; logo: string 
                   : rotate(bars, row)
                       .slice(0, 3)
                       .map((src, i) => <Product key={i} src={src} cx={x0 + 70 + i * 80} bottom={y} height={142} ratio={BAR_RATIO} />)}
-                <rect x={x0 + 8} y={y - 1} width={284} height={7} rx={2} fill="url(#ki-gold)" />
+                <rect x={x0 + 14} y={y - 1} width={272} height={9} rx={4.5} fill={MILK} filter="url(#ki-soft)" />
               </g>
             )
           })}
-          <path d={d} fill="none" stroke="url(#ki-gold)" strokeWidth={7} />
         </g>
       ))}
 
-      {/* wall sconces between the arches */}
-      {[530, 1070].map((x) => (
-        <g key={x}>
-          <ellipse cx={x} cy={470} rx={110} ry={120} fill="url(#ki-glow)" opacity={0.75} className="king-hero-flicker-svg" />
-          <rect x={x - 5} y={492} width={10} height={36} rx={4} fill="url(#ki-gold)" />
-          <path d={`M${x - 16} 440 L${x + 16} 440 L${x + 12} 492 L${x - 12} 492 Z`} fill="#fff4d6" stroke="url(#ki-gold)" strokeWidth={3} />
-          <circle cx={x} cy={466} r={6} fill="#fffbe8" />
-        </g>
-      ))}
-
-      {/* centre arch: the hero display */}
-      <path d={center} fill="url(#ki-teal)" />
-      <ellipse cx={800} cy={470} rx={200} ry={170} fill="url(#ki-glow)" opacity={0.45} />
-      <image href={logo} x={800 - 84} y={404} width={168} height={168 * LOGO_RATIO} preserveAspectRatio="xMidYMid meet" filter="url(#ki-shadow)" />
-      <g className="king-hero-float" style={{ transformOrigin: "800px 700px" }}>
-        <g filter="url(#ki-shadow)">
-          <Product src={products.heroLeft} cx={688} bottom={748} height={226} ratio={BAR_RATIO} rotate={-10} shadow={false} />
-          <Product src={products.heroRight} cx={912} bottom={748} height={226} ratio={BAR_RATIO} rotate={10} shadow={false} />
-          <Product src={products.hero} cx={800} bottom={758} height={212} ratio={TUB_RATIO} shadow={false} />
-        </g>
+      {/* centre arch: deep teal with the pink blob behind the hero display */}
+      <path d={center} fill={OCEAN_DEEP} />
+      <g clipPath="url(#ki-center-clip)">
+        <ellipse cx={800} cy={640} rx={170} ry={190} fill={PINK} />
+        <ellipse cx={800} cy={640} rx={150} ry={170} fill="none" stroke={INK} strokeWidth={1.5} strokeDasharray="3 6" opacity={0.35} />
       </g>
-      {/* marble plinth */}
-      <rect x={636} y={752} width={328} height={38} rx={4} fill="url(#ki-marble)" />
-      <rect x={636} y={752} width={328} height={4} fill="url(#ki-gold)" />
-      <path d={center} fill="none" stroke="url(#ki-gold)" strokeWidth={9} />
+      <image href={logo} x={800 - 84} y={404} width={168} height={168 * LOGO_RATIO} preserveAspectRatio="xMidYMid meet" filter="url(#ki-shadow)" />
+      <g filter="url(#ki-shadow)">
+        <Product src={products.heroLeft} cx={688} bottom={748} height={226} ratio={BAR_RATIO} rotate={-10} shadow={false} />
+        <Product src={products.heroRight} cx={912} bottom={748} height={226} ratio={BAR_RATIO} rotate={10} shadow={false} />
+        <Product src={products.hero} cx={800} bottom={758} height={212} ratio={TUB_RATIO} shadow={false} />
+      </g>
+      {/* plinth */}
+      <rect x={636} y={752} width={328} height={38} rx={10} fill={MILK} />
 
-      {/* sparkles */}
-      {SPARKLES.map(([x, y, r, d], i) => (
-        <circle key={i} cx={x} cy={y} r={r} fill="#f3d27a" className="king-hero-twinkle" style={{ animationDelay: `${d}s` }} />
-      ))}
+      {badge && (
+        <g transform="translate(1004 700) rotate(-12)">
+          <circle r={50} fill={OCEAN} stroke={MILK} strokeWidth={4} />
+          <text textAnchor="middle" fontFamily={DISPLAY} fontWeight={900} fontSize={13} letterSpacing={0.5} fill={MILK}>
+            {badge
+              .toUpperCase()
+              .split(" ")
+              .map((w, i, all) => (
+                <tspan key={i} x={0} y={(i - (all.length - 1) / 2) * 15 + 5}>
+                  {w}
+                </tspan>
+              ))}
+          </text>
+        </g>
+      )}
 
-      {/* counter: marble top, teal front with gold-framed panels */}
-      <rect x={-1200} y={790} width={INT_W + 2400} height={28} fill="url(#ki-marble)" />
-      <rect x={-1200} y={816} width={INT_W + 2400} height={5} fill="url(#ki-gold)" />
-      <rect x={-1200} y={821} width={INT_W + 2400} height={1400} fill={TEAL} />
-      {Array.from({ length: 12 }, (_, i) => -1000 + i * 320).map((x) => (
-        <rect key={x} x={x + 20} y={848} width={280} height={124} fill="none" stroke="url(#ki-gold)" strokeWidth={3} opacity={0.45} />
-      ))}
+      {/* counter: milk-white top, ocean-teal front */}
+      <rect x={-1200} y={790} width={INT_W + 2400} height={18} fill={MILK} />
+      <rect x={-1200} y={808} width={INT_W + 2400} height={1400} fill={OCEAN} />
+
+      {/* ticker band, like the website */}
+      {tickerLine && (
+        <g>
+          <rect x={-1200} y={0} width={INT_W + 2400} height={58} fill={OCEAN} />
+          <g className="king-hero-marquee">
+            {Array.from({ length: 6 }, (_, i) => (
+              <text
+                key={i}
+                x={-1200 + i * 1000}
+                y={37}
+                fontFamily={DISPLAY}
+                fontWeight={900}
+                fontSize={19}
+                letterSpacing={1}
+                fill={MILK}
+                textLength={960}
+                lengthAdjust="spacing"
+              >
+                {tickerLine.map((t, j) => (
+                  <tspan key={j}>
+                    {t}
+                    <tspan fill={SUN}>{"   •   "}</tspan>
+                  </tspan>
+                ))}
+              </text>
+            ))}
+          </g>
+        </g>
+      )}
     </svg>
   )
 }
-
-const MARBLE_VEINS = [
-  "M-200 180 C 60 140, 140 260, 360 220 S 620 120, 760 200",
-  "M820 150 C 960 210, 1080 120, 1240 190 S 1520 260, 1800 170",
-  "M-100 330 C 40 380, 90 300, 160 360",
-  "M1440 300 C 1500 360, 1560 330, 1700 400",
-  "M480 300 C 520 330, 540 380, 520 420",
-  "M1090 250 C 1060 300, 1100 330, 1080 380",
-]
-
-const SPARKLES: [number, number, number, number][] = [
-  [470, 230, 2.5, 0],
-  [1130, 220, 2.5, 0.8],
-  [640, 170, 2, 1.6],
-  [960, 330, 2.5, 0.4],
-  [760, 120, 2, 2.6],
-  [880, 200, 2.5, 1.9],
-]
 
 // Petals start near the bougainvillea on both sides of the scene.
 const PETALS = [
@@ -1297,14 +1345,6 @@ const KEYFRAMES = `
 @keyframes king-hero-bounce {
   0%, 100% { transform: translateY(0); opacity: 0.55; }
   50% { transform: translateY(5px); opacity: 1; }
-}
-@keyframes king-hero-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-@keyframes king-hero-twinkle {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 1; }
 }
 @keyframes king-hero-pulse {
   0% { box-shadow: 0 0 0 0 rgba(250,176,1,0.55); }
@@ -1336,7 +1376,6 @@ const KEYFRAMES = `
   animation: king-hero-tumble 4s ease-in-out infinite;
 }
 .king-hero-flicker { animation: king-hero-flicker 3.2s ease-in-out infinite; }
-.king-hero-flicker-svg { animation: king-hero-flicker 3.6s ease-in-out infinite; }
 .king-hero-hint-ring {
   display: inline-flex; align-items: center; justify-content: center;
   width: 46px; height: 46px; border-radius: 999px; color: ${YELLOW};
@@ -1344,26 +1383,21 @@ const KEYFRAMES = `
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   animation: king-hero-pulse 2s ease-out infinite;
 }
-.king-hero-float { animation: king-hero-float 5s ease-in-out infinite; }
-.king-hero-twinkle { animation: king-hero-twinkle 2.8s ease-in-out infinite; }
 .king-hero-btn {
   display: inline-flex; align-items: center; gap: 10px;
-  height: 52px; padding: 0 26px; border-radius: 999px;
-  font-family: ${SANS}; font-size: 15px; font-weight: 700; letter-spacing: 0.02em;
+  height: 50px; padding: 0 24px; border-radius: 999px;
+  font-family: ${SANS}; font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
   text-decoration: none; transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
 }
 .king-hero-btn:hover { transform: translateY(-2px); }
-.king-hero-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-.king-hero-btn--primary {
-  background: ${GOLD_CSS}; color: ${TEAL_DEEP};
-  box-shadow: 0 10px 30px rgba(0,40,55,0.35), inset 0 1px 0 rgba(255,255,255,0.6);
-}
-.king-hero-btn--primary:hover { box-shadow: 0 14px 36px rgba(0,40,55,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
-.king-hero-btn--ghost {
-  color: #fff; border: 1.5px solid rgba(255,241,184,0.75); background: rgba(0,70,94,0.35);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-}
-.king-hero-btn--ghost:hover { background: rgba(0,70,94,0.6); }
+.king-hero-btn:focus-visible { outline: 3px solid ${INK}; outline-offset: 3px; }
+.king-hero-btn--primary { background: ${SUN}; color: ${INK}; box-shadow: 0 8px 22px rgba(6,47,61,0.25); }
+.king-hero-btn--primary:hover { box-shadow: 0 12px 28px rgba(6,47,61,0.35); }
+.king-hero-btn--ghost { background: ${MILK}; color: ${INK}; box-shadow: 0 8px 22px rgba(6,47,61,0.2); }
+.king-hero-btn--ghost:hover { background: #fff; }
+.king-hero-outline { color: transparent; -webkit-text-stroke: 2px ${INK}; }
+@keyframes king-hero-marquee { from { transform: translateX(0); } to { transform: translateX(-1000px); } }
+.king-hero-marquee { animation: king-hero-marquee 26s linear infinite; }
 .king-hero-skip {
   position: absolute; right: clamp(12px, 2.5vw, 24px); bottom: clamp(14px, 2.4vw, 22px); z-index: 3;
   font-family: ${SANS}; font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
@@ -1376,7 +1410,7 @@ const KEYFRAMES = `
   .king-hero-btn { height: 46px; padding: 0 18px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .king-hero-float, .king-hero-twinkle, .king-hero-hint-ring, .king-hero-flicker, .king-hero-flicker-svg { animation: none; }
+  .king-hero-hint-ring, .king-hero-flicker, .king-hero-marquee { animation: none; }
   .king-hero-petal { display: none; }
 }
 `
