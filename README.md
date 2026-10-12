@@ -38,6 +38,7 @@ npm run dev        # http://localhost:3000   (reference: /reference)
 | --- | --- |
 | before scrolling | flowers and trees sway, the sea ripples, petals fall, lanterns flicker |
 | 0 – 45 % | camera eases toward the store, the gold glass doors swing inward and the King logo lights up, centred on the teal wall inside |
+| 13 – 55 % | inside the store comes alive: sprinkles burst out of the doorway, the logo pops onto the teal wall with spinning sun rays, and the real tubs and bars hop onto the shelves one by one |
 | 30 – 86 % | camera glides through the doorway at an even pace toward the arch inside |
 | 60 – 84 % | the parlour dissolves in, its arches, logo and shelves lined up with the ones seen through the door |
 | 86 – 100 % | headline, sub-copy and CTAs fade in |

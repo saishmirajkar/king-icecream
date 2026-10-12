@@ -150,6 +150,64 @@ const LOGO_RATIO = 375 / 578
 // (on top of the parlour's logo) once the rooms have dissolved into each other.
 const WALL_LOGO = { top: 492, w: 100 }
 const WALL_LOGO_END = { top: 459, w: 65 }
+// The store's own shelves (artwork units): products hop onto them during the walk-in.
+const SHELF_ROWS = [535, 583, 631] // tops of the three gold shelves in each side arch
+const LEFT_SHELF_X = [826, 866] // tubs (left arch, right of the door post)
+const RIGHT_SHELF_X = [1122, 1143, 1164, 1185] // bars (right arch, left of the door post)
+const POP = 0.07 // scroll progress each product takes to hop into place
+
+type ShelfItem = { src: string; cx: number; bottom: number; height: number; ratio: number; start: number }
+function shelfItems(p: KingHeroProducts): ShelfItem[] {
+  const left: Omit<ShelfItem, "start">[] = []
+  const right: Omit<ShelfItem, "start">[] = []
+  SHELF_ROWS.forEach((y, row) => {
+    LEFT_SHELF_X.forEach((x, i) => {
+      const src = p.tubs.length ? p.tubs[(row * 2 + i) % p.tubs.length] : null
+      if (src) left.push({ src, cx: x, bottom: y, height: 42, ratio: TUB_RATIO })
+    })
+    RIGHT_SHELF_X.forEach((x, i) => {
+      if (row === 0 && i === 0) return // the top shelf is narrower under the arch
+      const src = p.bars.length ? p.bars[(i + row) % p.bars.length] : null
+      if (src) right.push({ src, cx: x, bottom: y, height: 44, ratio: BAR_RATIO })
+    })
+  })
+  // alternate sides so the shelves fill up like a little dance
+  const order: Omit<ShelfItem, "start">[] = []
+  for (let i = 0; i < Math.max(left.length, right.length); i++) {
+    if (left[i]) order.push(left[i])
+    if (right[i]) order.push(right[i])
+  }
+  return order.map((it, i) => ({ ...it, start: 0.2 + (i / Math.max(1, order.length - 1)) * 0.3 }))
+}
+
+// Sprinkles that burst out of the doorway as it opens (deterministic, so scrolling back rewinds them)
+const CONFETTI = (() => {
+  let seed = 7
+  const rand = () => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  const colors = ["#fece51", "#f9c0d1", "#bee3dd", "#00799b", "#fef8e6", "#d9ccf2", "#ff9f6e", "#e2457f"]
+  return Array.from({ length: 96 }, () => {
+    const ox = 1000 + (rand() - 0.5) * 300
+    const side = ox < 1000 ? -1 : 1
+    return {
+      ox,
+      oy: 560 + rand() * 260,
+      vx: side * (120 + rand() * 620) + (rand() - 0.5) * 160,
+      vy: -(220 + rand() * 420),
+      g: 820 + rand() * 300,
+      start: 0.13 + rand() * 0.2,
+      rod: rand() < 0.68,
+      color: colors[Math.floor(rand() * colors.length)],
+      spin: 0.6 + rand() * 1.4,
+      rot: Math.floor(rand() * 180),
+    }
+  })
+})()
+
 const LANTERNS = [
   { x: 408, y: 498, r: 90 },
   { x: 1590, y: 505, r: 90 },
@@ -164,6 +222,11 @@ function clamp(v: number, min = 0, max = 1) {
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
 const easeInOutSine = (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t)
+const backOut = (t: number) => {
+  const c1 = 2.2
+  const c3 = c1 + 1
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+}
 const smooth = (t: number) => t * t * (3 - 2 * t)
 const range = (p: number, start: number, end: number) => clamp((p - start) / (end - start))
 
@@ -197,6 +260,8 @@ export default function KingStoreHero({
   const petalsRef = useRef<HTMLDivElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
   const innerLogoRef = useRef<HTMLDivElement>(null)
+  const shelfRef = useRef<SVGGElement>(null)
+  const confettiRef = useRef<HTMLDivElement>(null)
   const introRef = useRef<HTMLDivElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
   const finaleRef = useRef<HTMLDivElement>(null)
@@ -315,12 +380,53 @@ export default function KingStoreHero({
       if (doorGlowRef.current) doorGlowRef.current.style.opacity = String(door)
       const logo = innerLogoRef.current
       if (logo) {
-        logo.style.opacity = String(smooth(range(p, 0.1, 0.4)))
-        // Centred on the teal wall; during the dissolve it glides up into the
-        // parlour logo's place so only one logo is ever seen.
+        // Pops onto the teal wall with a bounce as the doors open…
+        const popT = range(p, 0.12, 0.3)
+        logo.style.opacity = String(smooth(range(p, 0.1, 0.18)))
+        const pop = 0.35 + 0.65 * backOut(popT)
+        // …and during the dissolve glides up into the parlour logo's place,
+        // so only one logo is ever seen.
         const m = easeInOutSine(range(p, 0.5, 0.74))
         const k = 1 + (WALL_LOGO_END.w / WALL_LOGO.w - 1) * m
-        logo.style.transform = `translateY(${(WALL_LOGO_END.top - WALL_LOGO.top) * m}px) scale(${k})`
+        const fromY = WALL_LOGO.top + (WALL_LOGO.w * LOGO_RATIO) / 2
+        const toY = WALL_LOGO_END.top + (WALL_LOGO_END.w * LOGO_RATIO) / 2
+        logo.style.transform = `translateY(${(toY - fromY) * m}px) scale(${k * pop})`
+        const rays = logo.firstElementChild as SVGElement | null
+        if (rays) rays.style.opacity = String(1 - smooth(range(p, 0.5, 0.64)))
+      }
+
+      // Products hop onto the shelves one after another.
+      const shelf = shelfRef.current
+      if (shelf) {
+        for (const el of Array.from(shelf.children) as SVGGElement[]) {
+          const start = Number(el.dataset.start)
+          const t = range(p, start, start + POP)
+          const cx = Number(el.dataset.cx)
+          const b = Number(el.dataset.b)
+          const k = t <= 0 ? 0.001 : backOut(t)
+          const lift = (1 - smooth(t)) * 14
+          el.setAttribute("transform", `translate(${cx} ${b - lift}) scale(${k}) translate(${-cx} ${-b})`)
+          el.style.opacity = t > 0 ? "1" : "0"
+        }
+      }
+
+      // Sprinkles burst out of the doorway toward the camera.
+      const confetti = confettiRef.current
+      if (confetti) {
+        const kids = confetti.children
+        for (let i = 0; i < kids.length; i++) {
+          const el = kids[i] as HTMLElement
+          const c = CONFETTI[i]
+          const t = range(p, c.start, c.start + 0.34)
+          if (t <= 0 || t >= 1) {
+            el.style.opacity = "0"
+            continue
+          }
+          const x = c.ox + c.vx * t
+          const y = c.oy + c.vy * t + 0.5 * c.g * t * t
+          el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${0.5 + 1.9 * t})`
+          el.style.opacity = String(smooth(range(t, 0, 0.06)) * (1 - smooth(range(t, 0.7, 1))))
+        }
       }
       if (petalsRef.current) petalsRef.current.style.opacity = String(1 - range(p, 0.25, 0.5))
 
@@ -622,7 +728,25 @@ export default function KingStoreHero({
           style={{ position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H, opacity: 0, transition: "opacity .6s ease" }}
         />
 
-        {/* King logo lit up on the teal arch inside the store */}
+        {/* Real King products hopping onto the store's shelves */}
+        <svg
+          viewBox={`0 0 ${STAGE_W} ${STAGE_H}`}
+          width={STAGE_W}
+          height={STAGE_H}
+          style={{ position: "absolute", inset: 0, overflow: "visible", filter: "sepia(0.12) saturate(0.96) brightness(0.98)" }}
+        >
+          <g ref={shelfRef}>
+            {shelfItems(items).map((it, i) => (
+              <g key={i} data-start={it.start} data-cx={it.cx} data-b={it.bottom} style={{ opacity: 0 }}>
+                <g className="king-hero-wobble" style={{ animationDelay: `${-(i % 5) * 0.37}s` }}>
+                  <Product src={it.src} cx={it.cx} bottom={it.bottom} height={it.height} ratio={it.ratio} />
+                </g>
+              </g>
+            ))}
+          </g>
+        </svg>
+
+        {/* King logo popping onto the teal arch inside the store */}
         <div
           ref={innerLogoRef}
           style={{
@@ -631,10 +755,28 @@ export default function KingStoreHero({
             top: WALL_LOGO.top,
             width: WALL_LOGO.w,
             height: WALL_LOGO.w * LOGO_RATIO,
-            transformOrigin: "50% 0",
+            transformOrigin: "50% 50%",
             opacity: 0,
           }}
         >
+          {/* sun rays, like the sun in the logo, turning slowly behind it */}
+          <svg
+            viewBox="-100 -100 200 200"
+            width={210}
+            height={210}
+            className="king-hero-spin"
+            style={{ position: "absolute", left: "50%", top: "50%", marginLeft: -105, marginTop: -105 }}
+          >
+            {Array.from({ length: 16 }, (_, i) => (
+              <polygon
+                key={i}
+                points="-3.5,-48 3.5,-48 1.2,-82 -1.2,-82"
+                fill={i % 2 ? "#fef8e6" : "#fece51"}
+                opacity={0.6}
+                transform={`rotate(${i * 22.5})`}
+              />
+            ))}
+          </svg>
           <div
             className="king-hero-flicker"
             style={{
@@ -735,6 +877,30 @@ export default function KingStoreHero({
             opacity: 0,
           }}
         />
+
+        {/* Sprinkles bursting out of the doorway */}
+        <div ref={confettiRef} style={{ position: "absolute", left: 0, top: 0 }}>
+          {CONFETTI.map((c, i) => (
+            <span key={i} style={{ position: "absolute", left: 0, top: 0, opacity: 0, willChange: "transform" }}>
+              <span
+                className="king-hero-confetti"
+                style={{
+                  display: "block",
+                  width: c.rod ? 20 : 10,
+                  height: c.rod ? 6 : 10,
+                  marginLeft: c.rod ? -10 : -5,
+                  marginTop: c.rod ? -3 : -5,
+                  borderRadius: c.rod ? 3 : "50%",
+                  background: c.color,
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+                  rotate: `${c.rot}deg`,
+                  animationDuration: `${c.spin}s`,
+                  animationDirection: c.rot % 2 ? "reverse" : "normal",
+                }}
+              />
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Drifting bougainvillea petals */}
@@ -1376,6 +1542,11 @@ const KEYFRAMES = `
   animation: king-hero-tumble 4s ease-in-out infinite;
 }
 .king-hero-flicker { animation: king-hero-flicker 3.2s ease-in-out infinite; }
+@keyframes king-hero-spin { to { transform: rotate(360deg); } }
+.king-hero-spin { animation: king-hero-spin 22s linear infinite; }
+.king-hero-confetti { animation: king-hero-spin 1.2s linear infinite; }
+@keyframes king-hero-wobble { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+.king-hero-wobble { transform-box: fill-box; transform-origin: 50% 100%; animation: king-hero-wobble 1.9s ease-in-out infinite; }
 .king-hero-hint-ring {
   display: inline-flex; align-items: center; justify-content: center;
   width: 46px; height: 46px; border-radius: 999px; color: ${YELLOW};
@@ -1410,7 +1581,7 @@ const KEYFRAMES = `
   .king-hero-btn { height: 46px; padding: 0 18px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .king-hero-hint-ring, .king-hero-flicker, .king-hero-marquee { animation: none; }
+  .king-hero-hint-ring, .king-hero-flicker, .king-hero-marquee, .king-hero-spin, .king-hero-confetti, .king-hero-wobble { animation: none; }
   .king-hero-petal { display: none; }
 }
 `
