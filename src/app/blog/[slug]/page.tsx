@@ -12,6 +12,10 @@ import {
   getRelatedPosts,
   type ContentBlock,
 } from "@/lib/blog-posts";
+import { Reveal, RevealTitle, Stagger, StaggerItem } from "@/components/motion/reveal";
+import { Parallax } from "@/components/motion/scroll";
+import { Tilt } from "@/components/motion/interactive";
+import { Sprinkles } from "@/components/motion/decor";
 
 const BASE_URL = "https://www.kingicecream.com";
 
@@ -240,16 +244,17 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* Hero */}
       <section className="king-page-hero bg-[#00799b] text-[#fff8e6]">
+        <Sprinkles count={12} seed={post.slug.length} colors={["#ffbf31", "#f8bfd2", "#fff8e6"]} className="opacity-40" />
         <div className="king-shell relative z-10 max-w-5xl">
-          <Link
+          <Reveal><Link
             href="/blog"
-            className="king-page-kicker mb-9 inline-flex items-center gap-3 text-[#ffbf31] transition-colors hover:text-[#fff8e6]"
+            className="group king-page-kicker mb-9 inline-flex items-center gap-3 text-[#ffbf31] transition-colors hover:text-[#fff8e6]"
           >
-            <span className="h-[1px] w-6 bg-current" />
+            <span className="h-[2px] w-6 bg-current transition-all duration-300 group-hover:w-10" />
             The King Journal
-          </Link>
+          </Link></Reveal>
 
-          <div className="mb-5 flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-[#fff8e6]/80">
+          <Reveal delay={0.1} className="mb-5 flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-[#fff8e6]/80">
             <span className="font-semibold text-[#ffbf31]">{post.category}</span>
             <span className="w-1 h-1 rounded-full bg-background/50" />
             <time dateTime={post.date}>
@@ -261,16 +266,14 @@ export default async function BlogPostPage({ params }: Props) {
             </time>
             <span className="w-1 h-1 rounded-full bg-background/50" />
             <span>{post.readTime}</span>
-          </div>
+          </Reveal>
 
-          <h1 className="king-page-title king-reveal mb-6 max-w-5xl">
-            {post.title}
-          </h1>
+          <RevealTitle as="h1" className="king-page-title mb-6 max-w-5xl" lines={[post.title]} delay={0.15} />
 
           {post.subtitle && (
-            <p className="max-w-3xl text-lg font-semibold leading-relaxed text-[#fff8e6]/85 md:text-2xl">
+            <Reveal delay={0.3}><p className="max-w-3xl text-lg font-semibold leading-relaxed text-[#fff8e6]/85 md:text-2xl">
               {post.subtitle}
-            </p>
+            </p></Reveal>
           )}
         </div>
       </section>
@@ -278,22 +281,24 @@ export default async function BlogPostPage({ params }: Props) {
       {/* Cover image */}
       <HomeSectionDivider from="#00799b" to="#fff8e6" />
       <section className="king-shell relative z-10 -mt-10 md:-mt-20">
-        <div className="relative mx-auto aspect-[16/9] max-w-5xl overflow-hidden rounded-[1.5rem] bg-[#ffcf4f] shadow-[12px_12px_0_rgba(0,121,155,.18)] md:aspect-[21/9] md:rounded-[2rem]">
-          <Image
-            src={post.coverImage}
-            alt={post.coverAlt}
-            fill
-            priority
-            style={{ objectFit: "cover" }}
-            sizes="(max-width: 1024px) 100vw, 1024px"
-          />
-        </div>
+        <Reveal y={50} scale={0.97} className="relative mx-auto aspect-[16/9] max-w-5xl overflow-hidden rounded-[1.5rem] bg-[#ffcf4f] shadow-[12px_12px_0_rgba(0,121,155,.18)] md:aspect-[21/9] md:rounded-[2rem]">
+          <Parallax speed={40} className="absolute inset-[-10%]">
+            <Image
+              src={post.coverImage}
+              alt={post.coverAlt}
+              fill
+              priority
+              style={{ objectFit: "cover" }}
+              sizes="(max-width: 1024px) 100vw, 1024px"
+            />
+          </Parallax>
+        </Reveal>
       </section>
 
       {/* Body */}
       <article className="king-shell py-16 md:py-24">
         <div className="mx-auto max-w-3xl">
-          {post.content.map((block, i) => renderBlock(block, i))}
+          {post.content.map((block, i) => <Reveal key={i} y={block.type === "paragraph" ? 18 : 30}>{renderBlock(block, i)}</Reveal>)}
 
           {post.tags.length > 0 && (
             <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-2">
@@ -344,24 +349,16 @@ export default async function BlogPostPage({ params }: Props) {
         <HomeSectionDivider from="#fff8e6" to="#f8bfd2" />
         <section className="bg-[#f8bfd2] py-20 md:py-28">
           <div className="king-shell mb-10">
-            <div className="flex items-center gap-4 mb-5">
-              <span className="h-[1px] w-8 bg-gold" />
-              <span className="king-page-kicker text-[#00799b]">
-                Keep Reading
-              </span>
-            </div>
-            <h2 className="king-section-title">
-              More from
-              <em> the journal.</em>
-            </h2>
+            <Reveal as="span" className="king-page-kicker king-eyebrow mb-5 text-[#00799b]">Keep Reading</Reveal>
+            <RevealTitle className="king-section-title" lines={[<span key="l">More from <em>the journal.</em></span>]} />
           </div>
 
-          <div className="king-shell grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Stagger className="king-shell grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" gap={0.1}>
             {related.map((r) => (
-              <Link
+              <StaggerItem key={r.slug}><Tilt className="h-full rounded-[2rem]" max={5}><Link
                 key={r.slug}
                 href={`/blog/${r.slug}`}
-                className="king-editorial-card group bg-[#fff8e6] p-5 sm:p-6"
+                className="king-editorial-card group block h-full bg-[#fff8e6] p-5 sm:p-6"
               >
                 <div className="relative mb-5 aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#c9e4ef]">
                   <Image
@@ -379,9 +376,9 @@ export default async function BlogPostPage({ params }: Props) {
                 <h3 className="text-xl font-black leading-tight transition-colors group-hover:text-[#00799b]">
                   {r.title}
                 </h3>
-              </Link>
+              </Link></Tilt></StaggerItem>
             ))}
-          </div>
+          </Stagger>
         </section>
         </>
       )}

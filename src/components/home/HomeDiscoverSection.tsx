@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { TransitionLink } from "@/components/TransitionLink";
 import StackingCards, { StackingCardItem } from "@/components/ui/stacking-cards";
 import { categorySlug } from "@/lib/categories";
+import { Reveal, RevealTitle } from "@/components/motion/reveal";
 
 const root = "/images/Product Images copy/";
 const categories = [
@@ -22,13 +23,13 @@ export function HomeDiscoverSection() {
     <section id="discover" className="king-shell king-discover py-24 md:py-36" aria-labelledby="discover-heading">
       <div className="mb-12 flex flex-col gap-5 md:mb-16 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="king-label mb-5 text-[#00799b]">01 / Find your happy</p>
-          <h2 id="discover-heading" className="king-display king-section-heading">A treat for<br/><span className="text-[#00799b]">every mood.</span></h2>
+          <Reveal as="p" className="king-label mb-5 text-[#00799b]">01 / Find your happy</Reveal>
+          <RevealTitle id="discover-heading" className="king-display king-section-heading" lines={["A treat for", <span key="m" className="text-[#00799b]">every mood.</span>]} />
         </div>
-        <div className="max-w-xs">
+        <Reveal delay={0.2} className="max-w-xs">
           <p className="mb-5 text-lg font-medium leading-snug text-[#073c50]/75">From a quick little pick-me-up to the whole family&apos;s favourite, there&apos;s always a King for that.</p>
-          <TransitionLink href="/products" className="inline-flex items-center gap-2 border-b-2 border-[#00799b] pb-1 font-black text-[#00799b]">See the whole collection <ArrowUpRight size={19}/></TransitionLink>
-        </div>
+          <TransitionLink href="/products" className="group inline-flex items-center gap-2 border-b-2 border-[#00799b] pb-1 font-black text-[#00799b]">See the whole collection <ArrowUpRight size={19} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"/></TransitionLink>
+        </Reveal>
       </div>
 
       <StackingCards
@@ -59,7 +60,9 @@ export function HomeDiscoverSection() {
                   <h3 className="king-display king-stack-title">{cat.name}</h3>
                   <p className="king-stack-caption">{cat.caption}</p>
                 </div>
+                <span aria-hidden="true" className="absolute right-[14%] top-1/2 aspect-square w-[44%] -translate-y-1/2 rounded-full bg-[#fff8e6]/45 transition-transform duration-700 group-hover:scale-110 max-sm:right-[-6%] max-sm:top-[60%] max-sm:w-[70%]" />
                 <div className="king-stack-product">
+                  <div className="king-bob-slow absolute inset-0" style={{ animationDelay: `${index * -1.3}s` }}>
                   <Image
                     src={`${root}${cat.image}`}
                     alt={`King Ice Cream ${cat.name}`}
@@ -67,6 +70,7 @@ export function HomeDiscoverSection() {
                     sizes="(max-width: 768px) 82vw, 62vw"
                     className="object-contain object-center"
                   />
+                  </div>
                 </div>
                 <span className="king-stack-arrow" aria-hidden="true"><ArrowUpRight size={22}/></span>
                 <span className="king-stack-prompt" aria-hidden="true">Find your flavour</span>

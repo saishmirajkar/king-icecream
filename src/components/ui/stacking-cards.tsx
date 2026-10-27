@@ -12,12 +12,12 @@ import {
 } from "react";
 import {
   motion,
-  useReducedMotion,
   useScroll,
   useTransform,
   type MotionValue,
   type UseScrollOptions,
 } from "framer-motion";
+import { useReducedMotionSafe } from "@/components/motion/useReducedMotionSafe";
 
 interface StackingCardsProps extends PropsWithChildren, HTMLAttributes<HTMLDivElement> {
   scrollOptions?: UseScrollOptions;
@@ -62,7 +62,7 @@ const StackingCardItem = ({
   ...props
 }: StackingCardItemProps) => {
   const { progress, scaleMultiplier, totalCards = 0 } = useStackingCardsContext();
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotionSafe();
   const scaleTo = 1 - (totalCards - index) * (scaleMultiplier ?? 0.012);
   const scale = useTransform(
     progress,

@@ -1,171 +1,94 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
+import Image from "next/image";
 import { useAnimate } from "framer-motion";
+import { useReducedMotionSafe } from "@/components/motion/useReducedMotionSafe";
 import { useTransitionContext } from "@/context/TransitionContext";
 
 const EASE_IN = [0.76, 0, 0.24, 1] as const;
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
-export function PageTransition() {
-  const { isTransitioning, transitionType, onNavigate, complete } =
-    useTransitionContext();
-  const isAnimating = useRef(false);
-
-  const [curtainScope, animateCurtain] = useAnimate();
-  const [lineScope, animateLine] = useAnimate();
-  const [col1, animateCol1] = useAnimate();
-  const [col2, animateCol2] = useAnimate();
-  const [col3, animateCol3] = useAnimate();
-  const [col4, animateCol4] = useAnimate();
-  const [col5, animateCol5] = useAnimate();
-  const [diagScope, animateDiag] = useAnimate();
-  const [fadeScope, animateFade] = useAnimate();
-  const [zoomScope, animateZoom] = useAnimate();
-
-  useEffect(() => {
-    if (!isTransitioning || isAnimating.current) return;
-    isAnimating.current = true;
-
-    const run = async () => {
-      switch (transitionType) {
-        case "curtain":
-          await curtainWipe();
-          break;
-        case "columns":
-          await columnReveal();
-          break;
-        case "diagonal":
-          await diagonalWipe();
-          break;
-        case "fade":
-          await fadeThroughBlack();
-          break;
-        case "zoom":
-          await zoomOut();
-          break;
-      }
-      isAnimating.current = false;
-      complete();
-    };
-
-    async function curtainWipe() {
-      show(curtainScope.current);
-      show(lineScope.current);
-      await animateCurtain(curtainScope.current, { clipPath: "inset(0 0% 0 0)" }, { duration: 0.6, ease: EASE_IN });
-      animateLine(lineScope.current, { scaleX: 1 }, { duration: 0.3, ease: EASE_OUT });
-      onNavigate();
-      await delay(500);
-      animateLine(lineScope.current, { scaleX: 0 }, { duration: 0 });
-      await animateCurtain(curtainScope.current, { clipPath: "inset(0 0 0 100%)" }, { duration: 0.6, ease: EASE_IN });
-      animateCurtain(curtainScope.current, { clipPath: "inset(0 100% 0 0)" }, { duration: 0 });
-      hide(curtainScope.current);
-      hide(lineScope.current);
-    }
-
-    async function columnReveal() {
-      const cols = [
-        [col1, animateCol1],
-        [col2, animateCol2],
-        [col3, animateCol3],
-        [col4, animateCol4],
-        [col5, animateCol5],
-      ] as const;
-
-      for (const [scope] of cols) show(scope.current);
-
-      // Columns grow up — slower, more stagger
-      for (let i = 0; i < cols.length; i++) {
-        const [scope, animate] = cols[i];
-        animate(scope.current, { scaleY: 1 }, { duration: 0.5, ease: EASE_IN, delay: i * 0.08 });
-      }
-      await delay(700);
-      onNavigate();
-      await delay(500);
-
-      // Columns retract — match the slow pace
-      for (let i = 0; i < cols.length; i++) {
-        const [scope, animate] = cols[i];
-        animate(scope.current, { scaleY: 0 }, { duration: 0.5, ease: EASE_IN, delay: i * 0.08 });
-      }
-      await delay(700);
-
-      for (const [scope, animate] of cols) {
-        animate(scope.current, { scaleY: 0 }, { duration: 0 });
-        hide(scope.current);
-      }
-    }
-
-    async function diagonalWipe() {
-      show(diagScope.current);
-      await animateDiag(diagScope.current, { clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }, { duration: 0.7, ease: EASE_IN });
-      onNavigate();
-      await delay(500);
-      await animateDiag(diagScope.current, { clipPath: "polygon(100% 0, 100% 0, 100% 100%, 100% 100%)" }, { duration: 0.7, ease: EASE_IN });
-      animateDiag(diagScope.current, { clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)" }, { duration: 0 });
-      hide(diagScope.current);
-    }
-
-    async function fadeThroughBlack() {
-      show(fadeScope.current);
-      await animateFade(fadeScope.current, { opacity: 1 }, { duration: 0.5, ease: EASE_OUT });
-      onNavigate();
-      await delay(500);
-      await animateFade(fadeScope.current, { opacity: 0 }, { duration: 0.5, ease: EASE_OUT });
-      hide(fadeScope.current);
-    }
-
-    async function zoomOut() {
-      show(zoomScope.current);
-      await animateZoom(zoomScope.current, { opacity: 1, scale: 1 }, { duration: 0.6, ease: EASE_IN });
-      onNavigate();
-      await delay(500);
-      await animateZoom(zoomScope.current, { scale: 0.9, opacity: 0 }, { duration: 0.6, ease: EASE_IN });
-      animateZoom(zoomScope.current, { scale: 1.1, opacity: 0 }, { duration: 0 });
-      hide(zoomScope.current);
-    }
-
-    run();
-  }, [
-    isTransitioning, transitionType, onNavigate, complete,
-    animateCurtain, curtainScope, animateLine, lineScope,
-    animateCol1, col1, animateCol2, col2, animateCol3, col3, animateCol4, col4, animateCol5, col5,
-    animateDiag, diagScope, animateFade, fadeScope, animateZoom, zoomScope,
-  ]);
-
+/** A full-screen colour sheet whose top and bottom edges are the site's scallops. */
+function Sheet({ color, className }: { color: string; className: string }) {
+  const id = useId().replace(/:/g, "");
   return (
-    <div className="fixed inset-0 z-[55] pointer-events-none">
-      {/* CURTAIN */}
-      <div ref={curtainScope} className="absolute inset-0 bg-black invisible" style={{ clipPath: "inset(0 100% 0 0)" }} />
-
-      {/* GOLD LINE */}
-      <div ref={lineScope} className="absolute top-1/2 left-0 right-0 h-[2px] bg-gold -translate-y-1/2 origin-left invisible" style={{ scaleX: 0 }} />
-
-      {/* COLUMNS */}
-      {[col1, col2, col3, col4, col5].map((ref, i) => (
-        <div key={i} ref={ref} className="absolute top-0 bottom-0 bg-black origin-bottom invisible" style={{ left: `${i * 20}%`, width: "20.5%", scaleY: 0 }} />
-      ))}
-
-      {/* DIAGONAL */}
-      <div ref={diagScope} className="absolute inset-0 bg-black invisible" style={{ clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)" }} />
-
-      {/* FADE */}
-      <div ref={fadeScope} className="absolute inset-0 bg-black invisible" style={{ opacity: 0 }} />
-
-      {/* ZOOM */}
-      <div ref={zoomScope} className="absolute inset-0 bg-black invisible" style={{ opacity: 0, scale: 1.1 }} />
+    <div className={`king-sheet ${className}`} style={{ transform: "translateY(110%)" }}>
+      <svg className="king-sheet__edge" width="100%" height="48" aria-hidden="true">
+        <defs><pattern id={`top-${id}`} width="144" height="48" patternUnits="userSpaceOnUse"><path d="M0 48H144V12C108 12 108 40 72 40C36 40 36 12 0 12Z" fill={color} /></pattern></defs>
+        <rect width="100%" height="100%" fill={`url(#top-${id})`} />
+      </svg>
+      <div className="king-sheet__body" style={{ backgroundColor: color }} />
+      <svg className="king-sheet__edge" width="100%" height="48" aria-hidden="true">
+        <defs><pattern id={`bottom-${id}`} width="144" height="48" patternUnits="userSpaceOnUse"><path d="M0 0H144V36C108 36 108 8 72 8C36 8 36 36 0 36Z" fill={color} /></pattern></defs>
+        <rect width="100%" height="100%" fill={`url(#bottom-${id})`} />
+      </svg>
     </div>
   );
 }
 
-function show(el: HTMLElement) {
-  el.style.visibility = "visible";
+/**
+ * Route changes roll a yellow then a teal scalloped sheet up over the page,
+ * stamp the crown in the middle while the next page loads, then carry on
+ * upward to reveal it.
+ */
+export function PageTransition() {
+  const { isTransitioning, onNavigate, complete } = useTransitionContext();
+  const [scope, animate] = useAnimate();
+  const running = useRef(false);
+  const reduced = useReducedMotionSafe();
+
+  useEffect(() => {
+    if (!isTransitioning || running.current) return;
+    running.current = true;
+    const root = scope.current as HTMLDivElement;
+
+    const run = async () => {
+      root.style.visibility = "visible";
+      if (reduced) {
+        animate(".pt-teal", { y: "0%" }, { duration: 0 });
+        animate(".pt-mark", { opacity: 1 }, { duration: 0 });
+        await animate(root, { opacity: [0, 1] }, { duration: 0.25 });
+        onNavigate();
+        await wait(450);
+        await animate(root, { opacity: 0 }, { duration: 0.25 });
+        animate(".pt-teal", { y: "110%" }, { duration: 0 });
+        animate(".pt-mark", { opacity: 0 }, { duration: 0 });
+      } else {
+        animate(".pt-yellow", { y: ["110%", "0%"] }, { duration: 0.6, ease: EASE_IN });
+        await animate(".pt-teal", { y: ["110%", "0%"] }, { duration: 0.6, ease: EASE_IN, delay: 0.1 });
+        animate(".pt-mark", { opacity: [0, 1], scale: [0.6, 1], rotate: [-10, 0] }, { duration: 0.5, ease: EASE_OUT });
+        animate(".pt-word", { opacity: [0, 1], y: [14, 0] }, { duration: 0.5, ease: EASE_OUT, delay: 0.12 });
+        onNavigate();
+        await wait(650);
+        animate(".pt-mark, .pt-word", { opacity: 0, y: -24 }, { duration: 0.3, ease: EASE_IN });
+        animate(".pt-teal", { y: "-110%" }, { duration: 0.7, ease: EASE_IN, delay: 0.12 });
+        await animate(".pt-yellow", { y: "-110%" }, { duration: 0.7, ease: EASE_IN, delay: 0.24 });
+        animate(".pt-yellow, .pt-teal", { y: "110%" }, { duration: 0 });
+        animate(".pt-mark, .pt-word", { y: 0 }, { duration: 0 });
+      }
+      root.style.visibility = "hidden";
+      root.style.opacity = "";
+      running.current = false;
+      complete();
+    };
+    run();
+  }, [isTransitioning, onNavigate, complete, animate, scope, reduced]);
+
+  return (
+    <div ref={scope} className="pointer-events-none fixed inset-0 z-[70] overflow-hidden" style={{ visibility: "hidden" }} aria-hidden="true">
+      <Sheet color="#ffbf31" className="pt-yellow" />
+      <Sheet color="#00799b" className="pt-teal" />
+      <div className="absolute inset-0 grid place-content-center justify-items-center gap-5">
+        <div className="pt-mark rounded-[22px] bg-[#fff8e6] px-4 py-2 opacity-0 shadow-[5px_6px_0_rgba(4,55,72,.28)]">
+          <Image src="/images/logos/king logo.png" alt="" width={170} height={105} className="h-[84px] w-[130px] object-contain" />
+        </div>
+        <p className="pt-word king-label text-[#ffbf31] opacity-0">Scooping happiness</p>
+      </div>
+    </div>
+  );
 }
 
-function hide(el: HTMLElement) {
-  el.style.visibility = "hidden";
-}
-
-function delay(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+function wait(ms: number) {
+  return new Promise(r => setTimeout(r, ms));
 }

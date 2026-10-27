@@ -6,6 +6,10 @@ import { Footer } from "@/components/Footer";
 import { HomeSectionDivider } from "@/components/home/HomeSectionDivider";
 import { blogPosts } from "@/lib/blog-posts";
 import { ScrollingFeatureShowcase } from "@/components/ui/interactive-scrolling-story-component";
+import { Reveal, RevealTitle } from "@/components/motion/reveal";
+import { Parallax } from "@/components/motion/scroll";
+import { Tilt } from "@/components/motion/interactive";
+import { SpinBadge, Sprinkles } from "@/components/motion/decor";
 
 const BASE_URL = "https://www.kingicecream.com";
 
@@ -79,52 +83,40 @@ export default function BlogIndexPage() {
 
       {/* Hero */}
       <section className="king-page-hero bg-[#00799b] text-[#fff8e6]">
+        <Sprinkles count={14} seed={51} colors={["#ffbf31", "#f8bfd2", "#fff8e6"]} className="opacity-50" />
         <div className="king-shell relative z-10">
-          <div className="flex items-center gap-4 mb-5">
-            <span className="h-[1px] w-8 bg-gold" />
-            <span className="king-page-kicker text-[#ffbf31]">
-              The King Journal
-            </span>
-          </div>
-          <h1 className="king-page-title king-reveal max-w-5xl">
-            Stories from
-            <br />
-            <em>
-              Belagavi&apos;s dairy.
-            </em>
-          </h1>
-          <p className="king-prose king-reveal mt-8 max-w-2xl text-[#fff8e6]/80">
+          <Reveal as="span" className="king-page-kicker king-eyebrow mb-5 text-[#ffbf31]">The King Journal</Reveal>
+          <RevealTitle as="h1" className="king-page-title max-w-5xl" lines={["Stories from", <em key="b">Belagavi’s dairy.</em>]} gap={0.12} />
+          <Reveal delay={0.3}><p className="king-prose mt-8 max-w-2xl text-[#fff8e6]/80">
             News, history and behind-the-scenes from King Ice Cream — the brand,
             the plant, the farmers and the events that keep us busy.
-          </p>
+          </p></Reveal>
         </div>
-        <div className="absolute -bottom-32 -right-24 h-[36vw] w-[36vw] rounded-full border-[3rem] border-[#ffbf31]/20" aria-hidden="true" />
+        <div className="king-spin-slow absolute -bottom-32 -right-24 h-[36vw] w-[36vw] rounded-full border-[3rem] border-dashed border-[#ffbf31]/20" aria-hidden="true" />
+        <SpinBadge text={`${blogPosts.length} stories • Fresh from the dairy • `} className="absolute bottom-[14%] right-[10%] z-10 hidden h-32 w-32 bg-[#ffbf31] text-[#073c50] shadow-[6px_8px_0_rgba(4,55,72,.25)] lg:grid">
+          <span className="king-display text-4xl leading-none">{String(blogPosts.length).padStart(2, "0")}</span>
+        </SpinBadge>
       </section>
 
       {/* Featured post */}
       <HomeSectionDivider from="#00799b" to="#fff8e6" />
       <section className="py-20 md:py-28">
         <div className="king-shell">
-          <div className="flex items-center gap-4 mb-8">
-            <span className="h-[1px] w-8 bg-gold" />
-            <span className="king-page-kicker text-[#00799b]">
-              Latest
-            </span>
-          </div>
+          <Reveal as="span" className="king-page-kicker king-eyebrow mb-8 text-[#00799b]">Latest</Reveal>
 
-          <Link
+          <Reveal y={60}><Link
             href={`/blog/${featured.slug}`}
-            className="group grid grid-cols-1 items-center gap-8 rounded-[2rem] bg-[#ffcf4f] p-4 md:grid-cols-2 md:gap-12 md:p-8"
+            className="group grid grid-cols-1 items-center gap-8 rounded-[2rem] bg-[#ffcf4f] p-4 transition-shadow duration-500 hover:shadow-[0_30px_60px_rgba(7,60,80,.16)] md:grid-cols-2 md:gap-12 md:p-8"
           >
             <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-[#c9e4ef]">
-              <Image
+              <Parallax speed={30} className="absolute inset-[-8%]"><Image
                 src={featured.coverImage}
                 alt={featured.coverAlt}
                 fill
                 style={{ objectFit: "cover" }}
                 className="group-hover:scale-105 transition-transform duration-700"
                 sizes="(max-width: 768px) 100vw, 50vw"
-              />
+              /></Parallax>
               <span className="king-page-kicker absolute left-4 top-4 rounded-full bg-[#fff8e6] px-4 py-2 text-[#00799b]">
                 {featured.category}
               </span>
@@ -152,19 +144,19 @@ export default function BlogIndexPage() {
               <p className="king-prose mb-6">
                 {featured.excerpt}
               </p>
-              <span className="king-pill !bg-[#00799b] !text-[#fff8e6]">
+              <span className="king-pill king-pill--teal">
                 Read the story
-                <span className="h-[1px] w-8 bg-current" />
+                <span className="h-[2px] w-8 bg-current transition-all duration-500 group-hover:w-12" />
               </span>
             </div>
-          </Link>
+          </Link></Reveal>
         </div>
       </section>
 
       {/* Scroll-driven archive */}
       <HomeSectionDivider from="#fff8e6" to="#c9e4ef" />
       <section id="more-stories" className="king-more-stories bg-[#c9e4ef] py-20 md:py-28">
-        <div className="king-shell mb-9"><p className="king-page-kicker mb-4 text-[#00799b]">The archive</p><h2 className="king-section-title">More stories.</h2></div>
+        <div className="king-shell mb-9"><Reveal as="p" className="king-page-kicker king-eyebrow mb-4 text-[#00799b]">The archive</Reveal><RevealTitle className="king-section-title" lines={["More stories."]} /></div>
         <ScrollingFeatureShowcase stories={rest.map(({ slug, title, excerpt, coverImage, coverAlt, category, date, readTime }) => ({ slug, title, excerpt, coverImage, coverAlt, category, date, readTime }))} />
       </section>
 

@@ -4,6 +4,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { HomeSectionDivider } from "@/components/home/HomeSectionDivider";
 import { ContactForm } from "./ContactForm";
+import { ArrowUpRight, Clock, Instagram, Mail, MessageCircle, Phone } from "lucide-react";
+import { CoverageMap } from "@/components/locate/CoverageMap";
+import { Reveal, RevealTitle, Stagger, StaggerItem } from "@/components/motion/reveal";
+import { Parallax } from "@/components/motion/scroll";
+import { Magnetic, Tilt } from "@/components/motion/interactive";
+import { SpinBadge, Sprinkles } from "@/components/motion/decor";
 
 export const metadata: Metadata = {
   title: "Contact Us — Get in Touch with King Ice Cream",
@@ -25,201 +31,123 @@ export const metadata: Metadata = {
   },
 };
 
+const methods = [
+  { kicker: "Call", title: "99002 55556", note: "Mon–Sat, 9 AM to 7 PM", href: "tel:+919900255556", icon: Phone, color: "#fff8e6", external: false },
+  { kicker: "Email", title: "info@kingicecream.com", note: "We reply within 48 hours", href: "mailto:info@kingicecream.com", icon: Mail, color: "#c9e4ef", external: false },
+  { kicker: "Instagram", title: "@kingicecream.india", note: "Behind the scenes", href: "https://www.instagram.com/kingicecream.india/", icon: Instagram, color: "#f8bfd2", external: true },
+];
+
 export default function ContactPage() {
   return (
     <main className="king-interior min-h-[100dvh]">
       <Header />
 
-      {/* Hero — split layout: left heading, right intro */}
-      <section className="king-page-hero flex min-h-[65svh] items-end bg-[#f8bfd2]">
+      {/* Hero */}
+      <section className="king-page-hero flex min-h-[70svh] items-end bg-[#f8bfd2]">
+        <Sprinkles count={16} seed={33} className="opacity-60" />
         <div className="king-shell relative z-10 grid w-full grid-cols-1 gap-8 md:grid-cols-12 md:gap-12">
           <div className="md:col-span-7">
-            <div className="flex items-center gap-4 mb-5">
-              <span className="h-[1px] w-8 bg-gold" />
-              <span className="king-page-kicker text-[#00799b]">
-                Get in Touch
-              </span>
-            </div>
-            <h1 className="king-page-title king-reveal">
-              Let&apos;s
-              <br />
-              <span className="text-[#00799b]">talk.</span>
-            </h1>
+            <Reveal as="span" className="king-page-kicker king-eyebrow mb-5 text-[#00799b]">Get in Touch</Reveal>
+            <RevealTitle as="h1" className="king-page-title" lines={["Let’s", <span key="t" className="text-[#00799b]">talk.</span>]} gap={0.12} />
           </div>
-          <div className="md:col-span-5 flex items-end">
+          <Reveal delay={0.3} className="flex items-end md:col-span-5">
             <p className="king-prose max-w-md font-semibold">
               Whether it&apos;s a flavour suggestion, franchise enquiry, wholesale
               partnership, or just a compliment about your favourite scoop —
               we&apos;re all ears.
             </p>
-          </div>
+          </Reveal>
         </div>
-        <div className="pointer-events-none absolute -right-12 top-10 hidden h-[65%] w-[29%] rotate-12 opacity-60 lg:block" aria-hidden="true"><Image src="/images/Product Images copy/100 ml Premium cup Kesar Pista.png" alt="" fill sizes="30vw" className="object-contain"/></div>
+        <Parallax speed={60} rotate={6} className="pointer-events-none absolute -right-12 top-10 hidden h-[65%] w-[29%] lg:block">
+          <div aria-hidden="true" className="king-bob-slow relative h-full w-full rotate-12"><Image src="/images/Product Images copy/100 ml Premium cup Kesar Pista.png" alt="" fill priority sizes="30vw" className="object-contain drop-shadow-2xl"/></div>
+        </Parallax>
+        <SpinBadge text="We reply within 48 hours • " className="absolute bottom-[12%] right-[3%] z-10 hidden h-28 w-28 bg-[#00799b] text-[#fff8e6] shadow-[6px_8px_0_rgba(7,60,80,.15)] lg:grid">
+          <MessageCircle size={28} />
+        </SpinBadge>
       </section>
 
-      {/* Contact details — edge-to-edge touching grid */}
+      {/* Contact methods */}
       <HomeSectionDivider from="#f8bfd2" to="#ffcf4f" />
-      <section className="bg-[#ffcf4f]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          <a
-            href="tel:9900255556"
-            className="group border-r border-b border-[#073c50]/20 p-7 transition-colors hover:bg-[#fff8e6]/30 md:p-12"
-          >
-            <span className="king-page-kicker mb-5 text-[#00799b]">
-              Call
-            </span>
-            <span className="king-display block text-lg transition-colors group-hover:text-[#00799b] sm:text-2xl md:text-4xl">
-              99002 55556
-            </span>
-            <span className="font-sans text-[11px] sm:text-xs text-muted-foreground mt-2 block">
-              Tap to dial
-            </span>
-          </a>
-          <a
-            href="mailto:info@kingicecream.com"
-            className="group border-r border-b border-[#073c50]/20 p-7 transition-colors hover:bg-[#fff8e6]/30 md:p-12"
-          >
-            <span className="king-page-kicker mb-5 text-[#00799b]">
-              Email
-            </span>
-            <span className="block break-all text-sm font-black leading-tight transition-colors group-hover:text-[#00799b] sm:text-lg md:text-2xl">
-              info@kingicecream.com
-            </span>
-            <span className="font-sans text-[11px] sm:text-xs text-muted-foreground mt-2 block">
-              Reply within 48 hrs
-            </span>
-          </a>
-          <a
-            href="https://www.instagram.com/kingicecream.india/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group border-r border-b border-[#073c50]/20 p-7 transition-colors hover:bg-[#fff8e6]/30 sm:col-span-2 md:col-span-1 md:p-12"
-          >
-            <span className="king-page-kicker mb-5 text-[#00799b]">
-              Instagram
-            </span>
-            <span className="block text-lg font-black leading-tight transition-colors group-hover:text-[#00799b] sm:text-2xl">
-              @kingicecream.india
-            </span>
-            <span className="font-sans text-[11px] sm:text-xs text-muted-foreground mt-2 block">
-              Behind the scenes
-            </span>
-          </a>
-        </div>
+      <section className="bg-[#ffcf4f] py-16 md:py-24">
+        <Stagger className="king-shell grid grid-cols-1 gap-4 md:grid-cols-3" gap={0.1}>
+          {methods.map(m => (
+            <StaggerItem key={m.kicker}>
+              <Tilt className="h-full rounded-[2rem]" max={5}>
+                <a href={m.href} {...(m.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="group relative flex h-full min-h-[240px] flex-col overflow-hidden rounded-[2rem] p-8 md:p-10" style={{ backgroundColor: m.color }}>
+                  <span aria-hidden="true" className="absolute inset-0 origin-bottom scale-y-0 bg-[#073c50] transition-transform duration-500 ease-out group-hover:scale-y-100" />
+                  <span className="relative mb-auto flex items-center justify-between">
+                    <span className="king-page-kicker text-[#00799b] transition-colors duration-500 group-hover:text-[#ffbf31]">{m.kicker}</span>
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[#073c50] text-[#fff8e6] transition-all duration-500 group-hover:rotate-[-12deg] group-hover:bg-[#ffbf31] group-hover:text-[#073c50]"><m.icon size={20} /></span>
+                  </span>
+                  <span className="relative mt-10 block text-[1.2rem] font-black leading-tight transition-colors duration-500 [overflow-wrap:anywhere] group-hover:text-[#fff8e6] sm:text-2xl md:text-[1.45rem] xl:text-[1.7rem]">{m.title}</span>
+                  <span className="relative mt-2 flex items-center justify-between text-sm font-semibold text-[#073c50]/70 transition-colors duration-500 group-hover:text-[#fff8e6]/75">{m.note}<ArrowUpRight size={18} className="transition-transform duration-500 group-hover:-translate-y-1 group-hover:translate-x-1" /></span>
+                </a>
+              </Tilt>
+            </StaggerItem>
+          ))}
+        </Stagger>
       </section>
 
-      {/* Address + Hours — edge-to-edge touching */}
-      <HomeSectionDivider from="#ffcf4f" to="#fff8e6" />
-      <section className="bg-[#fff8e6]">
-        <div className="grid grid-cols-1 md:grid-cols-2">
-          <div className="border-r border-b border-[#00799b]/20 p-7 md:p-12">
-            <div className="flex items-center gap-4 mb-5">
-              <span className="h-[1px] w-8 bg-gold" />
-              <span className="king-page-kicker text-[#00799b]">
-                Head Office
-              </span>
-            </div>
-            <h2 className="text-xl font-black leading-tight md:text-3xl">
-              Vijaykant Dairy &amp; Food Products Ltd.
-            </h2>
-            <p className="font-serif text-sm sm:text-base text-muted-foreground leading-[1.7]">
-              Neginhal Village, Bailhongal Taluka,
-              <br />
-              Dist. Belagavi, Karnataka 591102
-            </p>
-            <p className="font-serif italic text-sm text-foreground mt-4">
-              Proudly made in Belagavi since 2004.
-            </p>
-          </div>
-
-          <div className="border-r border-b border-[#00799b]/20 p-7 md:p-12">
-            <div className="flex items-center gap-4 mb-5">
-              <span className="h-[1px] w-8 bg-gold" />
-              <span className="king-page-kicker text-[#00799b]">
-                Business Hours
-              </span>
-            </div>
-            <div className="space-y-4">
-              <div className="flex justify-between items-baseline">
-                <span className="font-sans text-sm sm:text-base font-bold text-foreground">Mon — Sat</span>
-                <span className="font-sans text-sm sm:text-base text-muted-foreground">9 AM — 7 PM</span>
-              </div>
-              <div className="h-[1px] bg-border" />
-              <div className="flex justify-between items-baseline">
-                <span className="font-sans text-sm sm:text-base font-bold text-foreground">Sunday</span>
-                <span className="font-sans text-sm sm:text-base text-muted-foreground">Closed</span>
-              </div>
-            </div>
+      {/* Head office, hours and map */}
+      <HomeSectionDivider from="#ffcf4f" to="#00799b" />
+      <section className="relative overflow-hidden bg-[#00799b] py-20 text-[#fff8e6] md:py-28">
+        <div className="king-shell grid items-center gap-10 lg:grid-cols-[1fr_1fr] lg:gap-16">
+          <Reveal scale={0.94} className="relative mx-auto w-full max-w-[520px] overflow-hidden rounded-[2rem] bg-[#00799b] ring-2 ring-[#fff8e6]/15">
+            <CoverageMap className="block h-auto w-full" />
+          </Reveal>
+          <div>
+            <Reveal as="span" className="king-page-kicker king-eyebrow mb-5 text-[#ffbf31]">Head Office</Reveal>
+            <RevealTitle className="king-section-title mb-6" lines={["Come say", <span key="h" className="text-[#ffbf31]">hello.</span>]} />
+            <Reveal delay={0.15}>
+              <h2 className="text-xl font-black leading-tight md:text-2xl">Vijaykant Dairy &amp; Food Products Ltd.</h2>
+              <p className="mt-2 leading-[1.7] text-[#fff8e6]/80">Neginhal Village, Bailhongal Taluka,<br />Dist. Belagavi, Karnataka 591102</p>
+            </Reveal>
+            <Reveal delay={0.25} className="mt-8 max-w-md rounded-[1.5rem] bg-[#fff8e6]/10 p-6 backdrop-blur-sm">
+              <p className="king-page-kicker mb-4 flex items-center gap-2 text-[#ffbf31]"><Clock size={14} /> Business Hours</p>
+              <div className="flex items-baseline justify-between font-bold"><span>Mon — Sat</span><span className="text-[#fff8e6]/80">9 AM — 7 PM</span></div>
+              <div className="my-3 h-px bg-[#fff8e6]/20" />
+              <div className="flex items-baseline justify-between font-bold"><span>Sunday</span><span className="text-[#fff8e6]/80">Closed</span></div>
+            </Reveal>
+            <Reveal delay={0.35}><Magnetic><a href="https://www.google.com/maps/search/Vijaykant+Dairy+Neginhal+Bailhongal" target="_blank" rel="noopener noreferrer" className="king-pill mt-8">Get directions <ArrowUpRight size={18} /></a></Magnetic></Reveal>
           </div>
         </div>
       </section>
 
       {/* Contact Form */}
-      <HomeSectionDivider from="#fff8e6" to="#c9e4ef" />
+      <HomeSectionDivider from="#00799b" to="#c9e4ef" />
       <section className="bg-[#c9e4ef] py-20 md:py-32">
-        <div className="king-shell max-w-5xl">
-          <div className="flex items-center gap-4 mb-6">
-            <span className="h-[1px] w-8 bg-gold" />
-            <span className="king-page-kicker text-[#00799b]">
-              Send Us a Message
-            </span>
+        <div className="king-shell grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
+          <div>
+            <Reveal as="span" className="king-page-kicker king-eyebrow mb-6 text-[#00799b]">Send Us a Message</Reveal>
+            <RevealTitle className="king-section-title mb-6" lines={[<span key="l">Write to <em>us.</em></span>]} />
+            <Reveal delay={0.2}><p className="king-prose max-w-lg text-[#073c50]/75">
+              Fill in your details and we&apos;ll open your email client with everything ready to send.
+            </p></Reveal>
           </div>
-
-          <h2 className="king-section-title mb-6">
-            Write to
-            <em> us.</em>
-          </h2>
-          <p className="king-prose mb-10 max-w-lg text-[#073c50]/75">
-            Fill in your details and we&apos;ll open your email client with everything ready to send.
-          </p>
-
-          <ContactForm />
-        </div>
-      </section>
-
-      {/* Map — full bleed */}
-      <HomeSectionDivider from="#c9e4ef" to="#00799b" />
-      <section className="bg-[#00799b] p-3 md:p-8">
-        <div className="h-[380px] w-full overflow-hidden rounded-[1.5rem] md:h-[520px] md:rounded-[2rem]">
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d245615.67498339!2d74.4!3d15.85!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bbf65f1e1c0a7e5%3A0x4b1e3e1c2e3f2b2!2sBelagavi%2C+Karnataka!5e0!3m2!1sen!2sin!4v1700000000000"
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="King Ice Cream - Belagavi"
-          />
+          <Reveal delay={0.15}><ContactForm /></Reveal>
         </div>
       </section>
 
       {/* WhatsApp CTA */}
-      <HomeSectionDivider from="#00799b" to="#ffcf4f" />
+      <HomeSectionDivider from="#c9e4ef" to="#ffcf4f" />
       <section className="relative overflow-hidden bg-[#ffcf4f] py-20 md:py-28">
-        <div className="king-shell relative">
-          <div className="flex items-center gap-4 mb-6">
-            <span className="h-[1px] w-8 bg-foreground/70" />
-            <span className="king-page-kicker text-[#00799b]">
-              Quick Connect
-            </span>
+        <Sprinkles count={10} seed={47} className="opacity-50" />
+        <div className="king-shell relative grid items-center gap-10 md:grid-cols-[1.2fr_.8fr]">
+          <div>
+            <Reveal as="span" className="king-page-kicker king-eyebrow mb-6 text-[#00799b]">Quick Connect</Reveal>
+            <RevealTitle className="king-section-title mb-6" lines={[<span key="l">Prefer <span className="text-[#00799b]">WhatsApp?</span></span>]} />
+            <Reveal delay={0.2}><p className="king-prose mb-10 max-w-lg">
+              Drop us a message for franchise enquiries, bulk orders, or just to say hello.
+            </p></Reveal>
+            <Reveal delay={0.3}><Magnetic><a href="https://wa.me/919900255556" target="_blank" rel="noopener noreferrer" className="king-pill king-pill--teal">Message us on WhatsApp <ArrowUpRight size={18} /></a></Magnetic></Reveal>
           </div>
-          <h2 className="king-section-title mb-6">
-            Prefer
-            <span className="text-[#00799b]"> WhatsApp?</span>
-          </h2>
-          <p className="king-prose mb-10 max-w-lg">
-            Drop us a message for franchise enquiries, bulk orders, or just to say hello.
-          </p>
-          <a
-            href="https://wa.me/919900255556"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="king-pill !bg-[#00799b] !text-[#fff8e6]"
-          >
-            Message us on WhatsApp
-            <span className="h-[1px] w-6 bg-current" />
-          </a>
+          <Stagger className="relative hidden flex-col gap-3 md:flex" gap={0.35} delay={0.3}>
+            <StaggerItem className="max-w-[300px] self-start rounded-[1.5rem] rounded-bl-md bg-[#fff8e6] px-6 py-4 font-bold shadow-[6px_8px_0_rgba(7,60,80,.12)]">Hi King! Do you deliver to Hubballi? 🍦</StaggerItem>
+            <StaggerItem className="max-w-[300px] self-end rounded-[1.5rem] rounded-br-md bg-[#00799b] px-6 py-4 font-bold text-[#fff8e6] shadow-[6px_8px_0_rgba(7,60,80,.12)]">We sure do — 150+ outlets in Hubli-Dharwad!</StaggerItem>
+            <StaggerItem className="flex max-w-[120px] gap-1.5 self-start rounded-[1.5rem] rounded-bl-md bg-[#fff8e6] px-6 py-5 shadow-[6px_8px_0_rgba(7,60,80,.12)]">
+              {[0, 1, 2].map(i => <span key={i} className="king-bob h-2.5 w-2.5 rounded-full bg-[#073c50]/50" style={{ animationDuration: "1.2s", animationDelay: `${i * 0.15}s` }} />)}
+            </StaggerItem>
+          </Stagger>
         </div>
       </section>
 
