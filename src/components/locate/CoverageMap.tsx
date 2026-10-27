@@ -63,7 +63,7 @@ const coastPath = coast.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.t
 
 const stateLabels = [
   { name: "Maharashtra", lat: 17.9, lon: 75.6 },
-  { name: "Goa", lat: 15.05, lon: 73.45 },
+  { name: "Goa", lat: 14.72, lon: 73.62 },
   { name: "Karnataka", lat: 13.9, lon: 76.6 },
   { name: "Kerala", lat: 11.62, lon: 76.0 },
 ];
